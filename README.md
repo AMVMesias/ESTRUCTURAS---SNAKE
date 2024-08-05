@@ -1,5 +1,5 @@
 # ESTRUCTURAS---SNAKE
 Mesias Mariscal \\
 Leonel Tipan \\ 
-Juan Quimbulco \\ 
+Juan Quimbiulco \\ 
 Alison Miranda
