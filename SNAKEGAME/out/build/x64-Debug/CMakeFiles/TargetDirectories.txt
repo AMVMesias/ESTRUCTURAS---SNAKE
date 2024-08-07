@@ -1,0 +1,9 @@
+C:/Users/mesia/source/repos/AlejandroSuau/thetrueboolean/21.07.2024-snake/out/build/x64-Debug/CMakeFiles/thetrueboolean.dir
+C:/Users/mesia/source/repos/AlejandroSuau/thetrueboolean/21.07.2024-snake/out/build/x64-Debug/CMakeFiles/edit_cache.dir
+C:/Users/mesia/source/repos/AlejandroSuau/thetrueboolean/21.07.2024-snake/out/build/x64-Debug/CMakeFiles/rebuild_cache.dir
+C:/Users/mesia/source/repos/AlejandroSuau/thetrueboolean/21.07.2024-snake/out/build/x64-Debug/engine/CMakeFiles/engine.dir
+C:/Users/mesia/source/repos/AlejandroSuau/thetrueboolean/21.07.2024-snake/out/build/x64-Debug/engine/CMakeFiles/edit_cache.dir
+C:/Users/mesia/source/repos/AlejandroSuau/thetrueboolean/21.07.2024-snake/out/build/x64-Debug/engine/CMakeFiles/rebuild_cache.dir
+C:/Users/mesia/source/repos/AlejandroSuau/thetrueboolean/21.07.2024-snake/out/build/x64-Debug/games/CMakeFiles/snake.dir
+C:/Users/mesia/source/repos/AlejandroSuau/thetrueboolean/21.07.2024-snake/out/build/x64-Debug/games/CMakeFiles/edit_cache.dir
+C:/Users/mesia/source/repos/AlejandroSuau/thetrueboolean/21.07.2024-snake/out/build/x64-Debug/games/CMakeFiles/rebuild_cache.dir
