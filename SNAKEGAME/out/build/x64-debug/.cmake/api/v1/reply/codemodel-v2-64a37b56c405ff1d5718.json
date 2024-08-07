@@ -1,0 +1,76 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1
+					],
+					"jsonFile" : "directory-.-Debug-d0094a50bb2071803777.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.8"
+					},
+					"projectIndex" : 0,
+					"source" : "."
+				},
+				{
+					"build" : "SNAKEGAME",
+					"jsonFile" : "directory-SNAKEGAME-Debug-de0a3921b8517e22bc16.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.8"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "SNAKEGAME",
+					"targetIndexes" : 
+					[
+						0
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0,
+						1
+					],
+					"name" : "SNAKEGAME",
+					"targetIndexes" : 
+					[
+						0
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 1,
+					"id" : "SNAKEGAME::@9a218d72257948592b1b",
+					"jsonFile" : "target-SNAKEGAME-Debug-bb4782b6619a355f4ad5.json",
+					"name" : "SNAKEGAME",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Users/leone/OneDrive/Escritorio/4tosemestre/Estructuras/3er parcial/SNAKEGAME/out/build/x64-debug",
+		"source" : "C:/Users/leone/OneDrive/Escritorio/4tosemestre/Estructuras/3er parcial/SNAKEGAME"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 7
+	}
+}
