@@ -43,33 +43,35 @@ public:
         }
     }
 
-    void handleEvents() {
-        SDL_Event event;
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                isRunning = false;
-            } else if (event.type == SDL_KEYDOWN) {
-                switch (event.key.keysym.sym) {
-                    case SDLK_UP:
-                    case SDLK_w:
-                        if (direction != DOWN) direction = UP;
-                        break;
-                    case SDLK_DOWN:
-                    case SDLK_s:
-                        if (direction != UP) direction = DOWN;
-                        break;
-                    case SDLK_LEFT:
-                    case SDLK_a:
-                        if (direction != RIGHT) direction = LEFT;
-                        break;
-                    case SDLK_RIGHT:
-                    case SDLK_d:
-                        if (direction != LEFT) direction = RIGHT;
-                        break;
-                }
+void handleEvents() {
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_QUIT) {
+            isRunning = false;
+            SDL_Quit();
+            exit(0);  // Esto cerrará el programa inmediatamente
+        } else if (event.type == SDL_KEYDOWN) {
+            switch (event.key.keysym.sym) {
+                case SDLK_UP:
+                case SDLK_w:
+                    if (direction != DOWN) direction = UP;
+                    break;
+                case SDLK_DOWN:
+                case SDLK_s:
+                    if (direction != UP) direction = DOWN;
+                    break;
+                case SDLK_LEFT:
+                case SDLK_a:
+                    if (direction != RIGHT) direction = LEFT;
+                    break;
+                case SDLK_RIGHT:
+                case SDLK_d:
+                    if (direction != LEFT) direction = RIGHT;
+                    break;
             }
         }
     }
+}
 
     void update() {
         Point newHead = snake.front();
@@ -137,20 +139,23 @@ private:
         if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
             return false;
         }
-        music = Mix_LoadMUS("assets/music/musica1.mp3");
+        music = Mix_LoadMUS("assets/music/musica2.mp3");
         if (!music) {
             return false;
         }
         Mix_PlayMusic(music, -1); // Reproducir música en bucle
-        return true;
-    }
+            Mix_VolumeMusic(30);
+        return true;    }
 
     bool initSound() {
         eatSound = Mix_LoadWAV("assets/music/sound.wav");
         if (!eatSound) {
             std::cerr << "Error al cargar el sonido de comida: " << Mix_GetError() << std::endl;
+
             return false;
         }
+            Mix_VolumeChunk(eatSound, 128); // Establece el volumen del efecto de sonido de comida a un nivel intermedio (64 de 128)
+
         return true;
     }
 

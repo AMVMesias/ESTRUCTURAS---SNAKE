@@ -1,6 +1,7 @@
 #include "Menu.h"
 #include <SDL2/SDL_image.h>
 #include "Game.h"
+
 Menu::Menu(SDL_Renderer* renderer)
     : renderer(renderer), selectedOption(0), currentState(MenuState::MAIN), selectedDifficulty(0) {
     backgroundTexture = IMG_LoadTexture(renderer, "assets/images/imagen.png");
@@ -17,6 +18,7 @@ void Menu::handleEvents(bool &isRunning) {
     while (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT) {
             isRunning = false;
+            exit(0);  // Forzar la salida del programa
         } else if (event.type == SDL_KEYDOWN) {
             switch (currentState) {
                 case MenuState::MAIN:
@@ -34,6 +36,7 @@ void Menu::handleEvents(bool &isRunning) {
                                 // TODO: Show Scores
                             } else if (selectedOption == 2) {
                                 isRunning = false;
+                                exit(0);  // Forzar la salida del programa
                             }
                             break;
                     }
@@ -55,7 +58,7 @@ void Menu::handleEvents(bool &isRunning) {
                                 // Run the game loop
                                 bool gameRunning = true;
                                 while (gameRunning) {
-game->handleEvents();
+                                    game->handleEvents();
                                     game->update();
                                     game->render();
                                     SDL_Delay(1000 / (10 + selectedDifficulty * 5)); // Adjust the delay based on difficulty
@@ -73,7 +76,6 @@ game->handleEvents();
         }
     }
 }
-
 
 void Menu::render() {
     SDL_RenderClear(renderer);
