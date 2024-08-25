@@ -8,6 +8,7 @@ int main(int argc, char* argv[]) {
         ShowWindow(consoleWindow, SW_MINIMIZE);
     }
 
+
     Engine engine;
     if (engine.init()) {
         engine.run();

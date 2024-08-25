@@ -1,5 +1,0 @@
-INCLUDE_DIRECTORIES(include)
-
-FILE(GLOB_RECURSE SOURCES snake/*.cpp )
-
-ADD_LIBRARY(snake ${SOURCES})
