@@ -9,9 +9,10 @@
 #include <string>
 #include <iostream>
 #include <chrono>
+#include "Position.h"
+#include "Score.h"
 
 const int CELL_SIZE = 20;
-
 
 enum Direction { UP, DOWN, LEFT, RIGHT };
 enum GameLevel { LEVEL_1, LEVEL_2, LEVEL_3 };
@@ -23,7 +24,7 @@ struct Point {
 class Game {
 public:
     Game(SDL_Renderer* renderer)
-        : renderer(renderer), isRunning(true), direction(RIGHT), score(0), music(nullptr), eatSound(nullptr), currentLevel(LEVEL_1) {
+        : renderer(renderer), isRunning(true), direction(RIGHT), score(0), music(nullptr), eatSound(nullptr), currentLevel(LEVEL_1), scoreBoard(renderer) { // Iniciar scoreBoard
         snake.push_back({SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2});
         generarParedes();
         generarComida();
@@ -102,6 +103,7 @@ public:
 
         if (newHead.x == food.x && newHead.y == food.y) {
             score += 10;
+            scoreBoard.addScore({ "Jugador", score, (int)std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - startTime).count() }); // Agregar la puntuación
             generarComida();
             Mix_PlayChannel(-1, eatSound, 0);
         } else {
@@ -132,6 +134,10 @@ public:
             SDL_RenderFillRect(renderer, &wallRect);
         }
 
+        // Renderizar puntuación en pantalla
+        SDL_Color white = {255, 255, 255, 255};
+        scoreBoard.renderText(("Score: " + std::to_string(score)).c_str(), 9, 9, white);
+
         SDL_RenderPresent(renderer);
     }
 
@@ -143,7 +149,7 @@ public:
         mostrarPantallaTransicion("¡Superaste el Nivel 2!", "¿Quieres continuar al Nivel 3?", LEVEL_3);
     }
 
-private:
+public:
     bool inicializarMusica() {
         if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
             return false;
@@ -244,88 +250,30 @@ private:
         direction = RIGHT; // Reiniciar la dirección de la serpiente
     }
 
-    void mostrarPantallaTransicion(const std::string& mensaje1, const std::string& mensaje2, GameLevel nextLevel) {
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Fondo negro
+    void mostrarPantallaTransicion(const std::string& mensaje, const std::string& subMensaje, GameLevel nextLevel) {
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
-        // Mostrar mensaje de transición
-    mostrarTexto(mensaje1, SCREEN_HEIGHT / 2 - 100, {255, 255, 255, 255});
-    mostrarTexto(mensaje2, SCREEN_HEIGHT / 2 - 50, {255, 255, 255, 255});
-    mostrarTexto("Presiona Y para continuar o N para salir.", SCREEN_HEIGHT / 2 + 50, {255, 255, 255, 255});
-
+        SDL_Color white = {255, 255, 255, 255};
+        scoreBoard.renderText(mensaje.c_str(), SCREEN_WIDTH / 2 - 150, SCREEN_HEIGHT / 2 - 50, white);
+        scoreBoard.renderText(subMensaje.c_str(), SCREEN_WIDTH / 2 - 150, SCREEN_HEIGHT / 2, white);
         SDL_RenderPresent(renderer);
 
-        // Esperar hasta que el jugador tome una decisión
-        bool continuar = esperarDecisionJugador();
-        if (!continuar) {
-            isRunning = false; // Salir del juego si no quiere continuar
-            return;
-        }
-
-        // Configuración del nuevo nivel
+        SDL_Delay(4000);
         currentLevel = nextLevel;
-        walls.clear();
-        if (currentLevel == LEVEL_2) {
+        if (nextLevel == LEVEL_2) {
+            walls.clear();
             generarParedesNivel2();
-        } else if (currentLevel == LEVEL_3) {
+        } else if (nextLevel == LEVEL_3) {
+            walls.clear();
             generarParedesNivel3();
         }
-
-        // Posicionar la serpiente en un lugar seguro
         posicionarSerpienteEnLugarSeguro();
-
-        // Generar comida para el nivel
         generarComida();
+        startTime = std::chrono::steady_clock::now(); // Reiniciar el tiempo para el nuevo nivel
     }
 
-    bool esperarDecisionJugador() {
-        SDL_Event event;
-        while (true) {
-            while (SDL_PollEvent(&event)) {
-                if (event.type == SDL_KEYDOWN) {
-                    if (event.key.keysym.sym == SDLK_y) {
-                        return true;  // Continuar
-                    } else if (event.key.keysym.sym == SDLK_n) {
-                        return false; // Salir
-                    }
-                } else if (event.type == SDL_QUIT) {
-                    isRunning = false;
-                    SDL_Quit();
-                    exit(0);
-                }
-            }
-            SDL_Delay(100); // Evitar sobrecargar el procesador
-        }
-    }
-
-void mostrarTexto(const std::string& texto, int y, SDL_Color color) {
-    TTF_Font* font = TTF_OpenFont("assets/fonts/fuente.ttf", 24);
-    if (font == nullptr) {
-        std::cerr << "Error al cargar la fuente: " << TTF_GetError() << std::endl;
-        return;
-    }
-
-    SDL_Surface* surfaceMessage = TTF_RenderText_Solid(font, texto.c_str(), color);
-    SDL_Texture* message = SDL_CreateTextureFromSurface(renderer, surfaceMessage);
-
-    int textWidth = surfaceMessage->w;
-    int textHeight = surfaceMessage->h;
-
-    SDL_Rect messageRect;
-    messageRect.x = (SCREEN_WIDTH - textWidth) / 2; // Centra horizontalmente
-    messageRect.y = y;  // Posición vertical
-    messageRect.w = textWidth;
-    messageRect.h = textHeight;
-
-    SDL_RenderCopy(renderer, message, nullptr, &messageRect);
-
-    SDL_FreeSurface(surfaceMessage);
-    SDL_DestroyTexture(message);
-    TTF_CloseFont(font);
-}
-
-
-    void limpiar() {
+        void limpiar() {
         Mix_FreeMusic(music);
         Mix_FreeChunk(eatSound);
         Mix_CloseAudio();
@@ -333,17 +281,19 @@ void mostrarTexto(const std::string& texto, int y, SDL_Color color) {
         SDL_Quit();
     }
 
+
     SDL_Renderer* renderer;
-    bool isRunning;
-    Direction direction;
     std::vector<Point> snake;
-    Point food;
     std::vector<Point> walls;
+    Point food;
+    Direction direction;
+    bool isRunning;
     int score;
     Mix_Music* music;
     Mix_Chunk* eatSound;
     GameLevel currentLevel;
+    Score scoreBoard;
     std::chrono::steady_clock::time_point startTime;
 };
 
-#endif
+#endif // SNAKE_GAME_H

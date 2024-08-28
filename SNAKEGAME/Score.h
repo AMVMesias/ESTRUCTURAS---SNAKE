@@ -22,7 +22,6 @@ public:
     void display();
     void addScore(const ScoreEntry &entry);
 
-private:
     SDL_Renderer* renderer;
     SDL_Texture* backgroundTexture;
     TTF_Font* font;

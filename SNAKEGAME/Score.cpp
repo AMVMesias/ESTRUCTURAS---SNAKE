@@ -12,7 +12,7 @@ Score::~Score() {
 
 void Score::loadResources() {
     backgroundTexture = IMG_LoadTexture(renderer, "assets/images/imagen.png");
-    font = TTF_OpenFont("assets/fonts/fuente.ttf", 24);
+    font = TTF_OpenFont("assets/fonts/AngryBirdsPixela.ttf", 24);
 }
 
 void Score::cleanupResources() {
@@ -49,4 +49,5 @@ void Score::renderText(const char* text, int x, int y, SDL_Color color) {
     SDL_FreeSurface(surface);
     SDL_DestroyTexture(texture);
 }
+
 
