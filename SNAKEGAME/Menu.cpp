@@ -53,14 +53,14 @@ void Menu::handleEvents(bool &isRunning) {
                             // Here you should create a Game instance and start it with the selected difficulty
                             {
                                 Game* game = new Game(renderer);
-                                game->start(selectedDifficulty + 1); // Assuming difficulty levels are 1-based (1 for Easy, 2 for Medium, 3 for Hard)
+                                game->iniciar(selectedDifficulty + 1); // Assuming difficulty levels are 1-based (1 for Easy, 2 for Medium, 3 for Hard)
 
                                 // Run the game loop
                                 bool gameRunning = true;
                                 while (gameRunning) {
-                                    game->handleEvents();
-                                    game->update();
-                                    game->render();
+                                    game->manejarEventos();
+                                    game->actualizar();
+                                    game->renderizar();
                                     SDL_Delay(1000 / (10 + selectedDifficulty * 5)); // Adjust the delay based on difficulty
                                 }
 

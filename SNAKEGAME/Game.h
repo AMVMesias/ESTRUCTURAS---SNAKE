@@ -2,16 +2,19 @@
 #define SNAKE_GAME_H
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_mixer.h> // Incluir SDL_mixer
+#include <SDL2/SDL_mixer.h>
+#include <SDL2/SDL_ttf.h>  // Para renderizar texto
 #include <vector>
 #include <cstdlib>
-#include <string> // Para manejar cadenas de texto
+#include <string>
 #include <iostream>
+#include <chrono>
 
 const int CELL_SIZE = 20;
- // Asegúrate de definir la altura de la pantalla
+
 
 enum Direction { UP, DOWN, LEFT, RIGHT };
+enum GameLevel { LEVEL_1, LEVEL_2, LEVEL_3 };
 
 struct Point {
     int x, y;
@@ -20,60 +23,68 @@ struct Point {
 class Game {
 public:
     Game(SDL_Renderer* renderer)
-        : renderer(renderer), isRunning(true), direction(RIGHT), score(0), music(nullptr), eatSound(nullptr) {
+        : renderer(renderer), isRunning(true), direction(RIGHT), score(0), music(nullptr), eatSound(nullptr), currentLevel(LEVEL_1) {
         snake.push_back({SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2});
-        generateWalls();
-        spawnFood();
-        if (!initMusic() || !initSound()) {
+        generarParedes();
+        generarComida();
+        if (!inicializarMusica() || !inicializarSonido()) {
             isRunning = false;
         }
+        startTime = std::chrono::steady_clock::now();
     }
 
     ~Game() {
-        cleanupMusic();
-        cleanupSound();
+        limpiar();
     }
 
-    void start(int difficulty) {
+    void iniciar(int difficulty) {
         while (isRunning) {
-            handleEvents();
-            update();
-            render();
-            SDL_Delay(1000 / (10 + difficulty * 5)); // Ajustar velocidad según dificultad
-        }
-    }
+            manejarEventos();
+            actualizar();
+            renderizar();
+            SDL_Delay(1000 / (10 + difficulty * 5));
 
-void handleEvents() {
-    SDL_Event event;
-    while (SDL_PollEvent(&event)) {
-        if (event.type == SDL_QUIT) {
-            isRunning = false;
-            SDL_Quit();
-            exit(0);  // Esto cerrará el programa inmediatamente
-        } else if (event.type == SDL_KEYDOWN) {
-            switch (event.key.keysym.sym) {
-                case SDLK_UP:
-                case SDLK_w:
-                    if (direction != DOWN) direction = UP;
-                    break;
-                case SDLK_DOWN:
-                case SDLK_s:
-                    if (direction != UP) direction = DOWN;
-                    break;
-                case SDLK_LEFT:
-                case SDLK_a:
-                    if (direction != RIGHT) direction = LEFT;
-                    break;
-                case SDLK_RIGHT:
-                case SDLK_d:
-                    if (direction != LEFT) direction = RIGHT;
-                    break;
+            auto currentTime = std::chrono::steady_clock::now();
+            auto elapsedTime = std::chrono::duration_cast<std::chrono::seconds>(currentTime - startTime).count();
+            if (elapsedTime >= 4 && currentLevel == LEVEL_1) {
+                nivel2();
+            } else if (elapsedTime >= 15 && currentLevel == LEVEL_2) {
+                nivel3();
             }
         }
     }
-}
 
-    void update() {
+    void manejarEventos() {
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                isRunning = false;
+                SDL_Quit();
+                exit(0);
+            } else if (event.type == SDL_KEYDOWN) {
+                switch (event.key.keysym.sym) {
+                    case SDLK_UP:
+                    case SDLK_w:
+                        if (direction != DOWN) direction = UP;
+                        break;
+                    case SDLK_DOWN:
+                    case SDLK_s:
+                        if (direction != UP) direction = DOWN;
+                        break;
+                    case SDLK_LEFT:
+                    case SDLK_a:
+                        if (direction != RIGHT) direction = LEFT;
+                        break;
+                    case SDLK_RIGHT:
+                    case SDLK_d:
+                        if (direction != LEFT) direction = RIGHT;
+                        break;
+                }
+            }
+        }
+    }
+
+    void actualizar() {
         Point newHead = snake.front();
         switch (direction) {
             case UP:    newHead.y -= CELL_SIZE; break;
@@ -82,7 +93,7 @@ void handleEvents() {
             case RIGHT: newHead.x += CELL_SIZE; break;
         }
 
-        if (checkCollision(newHead)) {
+        if (verificarColision(newHead)) {
             isRunning = false;
             return;
         }
@@ -91,31 +102,31 @@ void handleEvents() {
 
         if (newHead.x == food.x && newHead.y == food.y) {
             score += 10;
-            spawnFood();
-            Mix_PlayChannel(-1, eatSound, 0); // Reproducir el efecto de sonido de comida
+            generarComida();
+            Mix_PlayChannel(-1, eatSound, 0);
         } else {
             snake.pop_back();
         }
     }
 
-    void render() {
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Fondo negro
+    void renderizar() {
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
         // Renderizar comida
-        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); // Comida roja
+        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
         SDL_Rect foodRect = { food.x, food.y, CELL_SIZE, CELL_SIZE };
         SDL_RenderFillRect(renderer, &foodRect);
 
         // Renderizar serpiente
-        SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255); // Serpiente verde
+        SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
         for (const auto& segment : snake) {
             SDL_Rect snakeRect = { segment.x, segment.y, CELL_SIZE, CELL_SIZE };
             SDL_RenderFillRect(renderer, &snakeRect);
         }
 
         // Renderizar paredes
-        SDL_SetRenderDrawColor(renderer, 128, 128, 128, 255); // Paredes grises
+        SDL_SetRenderDrawColor(renderer, currentLevel == LEVEL_1 ? 128 : (currentLevel == LEVEL_2 ? 64 : 32), 128, 128, 255);
         for (const auto& wall : walls) {
             SDL_Rect wallRect = { wall.x, wall.y, CELL_SIZE, CELL_SIZE };
             SDL_RenderFillRect(renderer, &wallRect);
@@ -124,18 +135,16 @@ void handleEvents() {
         SDL_RenderPresent(renderer);
     }
 
-private:
-    SDL_Renderer* renderer;
-    bool isRunning;
-    Direction direction;
-    std::vector<Point> snake;
-    std::vector<Point> walls;
-    Point food;
-    int score;
-    Mix_Music* music;
-    Mix_Chunk* eatSound; // Efecto de sonido
+    void nivel2() {
+        mostrarPantallaTransicion("Â¡Superaste el primer nivel!", "Â¿Quieres continuar al Nivel 2?", LEVEL_2);
+    }
 
-    bool initMusic() {
+    void nivel3() {
+        mostrarPantallaTransicion("Â¡Superaste el Nivel 2!", "Â¿Quieres continuar al Nivel 3?", LEVEL_3);
+    }
+
+private:
+    bool inicializarMusica() {
         if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
             return false;
         }
@@ -143,44 +152,22 @@ private:
         if (!music) {
             return false;
         }
-        Mix_PlayMusic(music, -1); // Reproducir música en bucle
-            Mix_VolumeMusic(30);
-        return true;    }
-
-    bool initSound() {
-        eatSound = Mix_LoadWAV("assets/music/sound.wav");
-        if (!eatSound) {
-            std::cerr << "Error al cargar el sonido de comida: " << Mix_GetError() << std::endl;
-
-            return false;
-        }
-            Mix_VolumeChunk(eatSound, 128); // Establece el volumen del efecto de sonido de comida a un nivel intermedio (64 de 128)
-
+        Mix_PlayMusic(music, -1);
+        Mix_VolumeMusic(30);
         return true;
     }
 
-    void cleanupMusic() {
-        if (music) {
-            Mix_FreeMusic(music);
+    bool inicializarSonido() {
+        eatSound = Mix_LoadWAV("assets/music/sound.wav");
+        if (!eatSound) {
+            std::cerr << "Error al cargar el sonido de comida: " << Mix_GetError() << std::endl;
+            return false;
         }
-        Mix_CloseAudio();
+        Mix_VolumeChunk(eatSound, 128);
+        return true;
     }
 
-    void cleanupSound() {
-        if (eatSound) {
-            Mix_FreeChunk(eatSound);
-        }
-    }
-
-    void spawnFood() {
-        do {
-            food.x = (rand() % (SCREEN_WIDTH / CELL_SIZE)) * CELL_SIZE;
-            food.y = (rand() % (SCREEN_HEIGHT / CELL_SIZE)) * CELL_SIZE;
-        } while (checkCollision(food)); // Asegurarse de que la comida no aparezca en la serpiente o en las paredes
-    }
-
-    void generateWalls() {
-        // Crear un borde alrededor del área de juego
+    void generarParedes() {
         for (int x = 0; x < SCREEN_WIDTH; x += CELL_SIZE) {
             walls.push_back({x, 0});
             walls.push_back({x, SCREEN_HEIGHT - CELL_SIZE});
@@ -189,24 +176,51 @@ private:
             walls.push_back({0, y});
             walls.push_back({SCREEN_WIDTH - CELL_SIZE, y});
         }
-
-        // Puedes agregar más paredes aquí si lo deseas
     }
 
-    bool checkCollision(const Point& p) {
-        // Colisión con los bordes
+    void generarParedesNivel2() {
+        generarParedes(); // Generar paredes del borde
+
+        // Agregar obstÃ¡culos adicionales
+        int centerX = SCREEN_WIDTH / 2;
+        int centerY = SCREEN_HEIGHT / 2;
+        for (int i = -5; i <= 5; i++) {
+            walls.push_back({centerX + i * CELL_SIZE, centerY});
+            walls.push_back({centerX, centerY + i * CELL_SIZE});
+        }
+    }
+
+    void generarParedesNivel3() {
+        generarParedes(); // Generar paredes del borde
+
+        // Agregar obstÃ¡culos adicionales para el nivel 3
+        int centerX = SCREEN_WIDTH / 2;
+        int centerY = SCREEN_HEIGHT / 2;
+        for (int i = -7; i <= 7; i++) {
+            walls.push_back({centerX + i * CELL_SIZE, centerY});
+            walls.push_back({centerX, centerY + i * CELL_SIZE});
+        }
+        // AÃ±adir mÃ¡s obstÃ¡culos si es necesario
+    }
+
+    void generarComida() {
+        do {
+            food.x = (rand() % (SCREEN_WIDTH / CELL_SIZE)) * CELL_SIZE;
+            food.y = (rand() % (SCREEN_HEIGHT / CELL_SIZE)) * CELL_SIZE;
+        } while (verificarColision(food));
+    }
+
+    bool verificarColision(const Point& p) {
         if (p.x < 0 || p.x >= SCREEN_WIDTH || p.y < 0 || p.y >= SCREEN_HEIGHT) {
             return true;
         }
 
-        // Colisión con la serpiente misma
         for (size_t i = 1; i < snake.size(); ++i) {
             if (p.x == snake[i].x && p.y == snake[i].y) {
                 return true;
             }
         }
 
-        // Colisión con las paredes
         for (const auto& wall : walls) {
             if (p.x == wall.x && p.y == wall.y) {
                 return true;
@@ -215,6 +229,121 @@ private:
 
         return false;
     }
+
+    void posicionarSerpienteEnLugarSeguro() {
+        snake.clear(); // Limpiar la serpiente
+        Point start;
+
+        // Encontrar un lugar seguro para iniciar
+        do {
+            start.x = (rand() % (SCREEN_WIDTH / CELL_SIZE)) * CELL_SIZE;
+            start.y = (rand() % (SCREEN_HEIGHT / CELL_SIZE)) * CELL_SIZE;
+        } while (verificarColision(start)); // Asegurarse de que el lugar no estÃ© ocupado
+
+        snake.push_back(start);
+        direction = RIGHT; // Reiniciar la direcciÃ³n de la serpiente
+    }
+
+    void mostrarPantallaTransicion(const std::string& mensaje1, const std::string& mensaje2, GameLevel nextLevel) {
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Fondo negro
+        SDL_RenderClear(renderer);
+
+        // Mostrar mensaje de transiciÃ³n
+    mostrarTexto(mensaje1, SCREEN_HEIGHT / 2 - 100, {255, 255, 255, 255});
+    mostrarTexto(mensaje2, SCREEN_HEIGHT / 2 - 50, {255, 255, 255, 255});
+    mostrarTexto("Presiona Y para continuar o N para salir.", SCREEN_HEIGHT / 2 + 50, {255, 255, 255, 255});
+
+        SDL_RenderPresent(renderer);
+
+        // Esperar hasta que el jugador tome una decisiÃ³n
+        bool continuar = esperarDecisionJugador();
+        if (!continuar) {
+            isRunning = false; // Salir del juego si no quiere continuar
+            return;
+        }
+
+        // ConfiguraciÃ³n del nuevo nivel
+        currentLevel = nextLevel;
+        walls.clear();
+        if (currentLevel == LEVEL_2) {
+            generarParedesNivel2();
+        } else if (currentLevel == LEVEL_3) {
+            generarParedesNivel3();
+        }
+
+        // Posicionar la serpiente en un lugar seguro
+        posicionarSerpienteEnLugarSeguro();
+
+        // Generar comida para el nivel
+        generarComida();
+    }
+
+    bool esperarDecisionJugador() {
+        SDL_Event event;
+        while (true) {
+            while (SDL_PollEvent(&event)) {
+                if (event.type == SDL_KEYDOWN) {
+                    if (event.key.keysym.sym == SDLK_y) {
+                        return true;  // Continuar
+                    } else if (event.key.keysym.sym == SDLK_n) {
+                        return false; // Salir
+                    }
+                } else if (event.type == SDL_QUIT) {
+                    isRunning = false;
+                    SDL_Quit();
+                    exit(0);
+                }
+            }
+            SDL_Delay(100); // Evitar sobrecargar el procesador
+        }
+    }
+
+void mostrarTexto(const std::string& texto, int y, SDL_Color color) {
+    TTF_Font* font = TTF_OpenFont("assets/fonts/fuente.ttf", 24);
+    if (font == nullptr) {
+        std::cerr << "Error al cargar la fuente: " << TTF_GetError() << std::endl;
+        return;
+    }
+
+    SDL_Surface* surfaceMessage = TTF_RenderText_Solid(font, texto.c_str(), color);
+    SDL_Texture* message = SDL_CreateTextureFromSurface(renderer, surfaceMessage);
+
+    int textWidth = surfaceMessage->w;
+    int textHeight = surfaceMessage->h;
+
+    SDL_Rect messageRect;
+    messageRect.x = (SCREEN_WIDTH - textWidth) / 2; // Centra horizontalmente
+    messageRect.y = y;  // PosiciÃ³n vertical
+    messageRect.w = textWidth;
+    messageRect.h = textHeight;
+
+    SDL_RenderCopy(renderer, message, nullptr, &messageRect);
+
+    SDL_FreeSurface(surfaceMessage);
+    SDL_DestroyTexture(message);
+    TTF_CloseFont(font);
+}
+
+
+    void limpiar() {
+        Mix_FreeMusic(music);
+        Mix_FreeChunk(eatSound);
+        Mix_CloseAudio();
+        SDL_DestroyRenderer(renderer);
+        SDL_Quit();
+    }
+
+    SDL_Renderer* renderer;
+    bool isRunning;
+    Direction direction;
+    std::vector<Point> snake;
+    Point food;
+    std::vector<Point> walls;
+    int score;
+    Mix_Music* music;
+    Mix_Chunk* eatSound;
+    GameLevel currentLevel;
+    std::chrono::steady_clock::time_point startTime;
 };
 
-#endif // SNAKE_GAME_H
+#endif
