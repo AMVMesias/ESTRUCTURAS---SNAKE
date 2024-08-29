@@ -468,3 +468,55 @@
 	<SDL2/SDL_image.h>
 	<SDL2/SDL_ttf.h>
 
+1724812672 source:c:\users\juand\downloads\snake\estructuras---snake\snakegame\engine.cpp
+	"Engine.h"
+	<SDL2/SDL_image.h>
+	<SDL2/SDL_mixer.h>
+	<SDL2/SDL_ttf.h>
+
+1724812672 c:\users\juand\downloads\snake\estructuras---snake\snakegame\engine.h
+	<SDL2/SDL.h>
+	<SDL2/SDL_mixer.h>
+	<SDL2/SDL_image.h>
+	<SDL2/SDL_ttf.h>
+	"Menu.h"
+	"Game.h"
+	"Score.h"
+
+1724812672 c:\users\juand\downloads\snake\estructuras---snake\snakegame\menu.h
+	<SDL2/SDL.h>
+	<SDL2/SDL_ttf.h>
+
+1724906052 c:\users\juand\downloads\snake\estructuras---snake\snakegame\game.h
+	<SDL2/SDL.h>
+	<SDL2/SDL_mixer.h>
+	<SDL2/SDL_ttf.h>
+	<vector>
+	<cstdlib>
+	<string>
+	<iostream>
+	<chrono>
+	"Score.h"
+
+1724815317 c:\users\juand\downloads\snake\estructuras---snake\snakegame\score.h
+	<SDL2/SDL.h>
+	<SDL2/SDL_image.h>
+	<SDL2/SDL_mixer.h>
+	<SDL2/SDL_ttf.h>
+	<vector>
+	<string>
+
+1724812675 source:c:\users\juand\downloads\snake\estructuras---snake\snakegame\main.cpp
+	<windows.h>
+	"Engine.h"
+
+1724812672 source:c:\users\juand\downloads\snake\estructuras---snake\snakegame\menu.cpp
+	"Menu.h"
+	<SDL2/SDL_image.h>
+	"Game.h"
+
+1724816257 source:c:\users\juand\downloads\snake\estructuras---snake\snakegame\score.cpp
+	"Score.h"
+	<SDL2/SDL_image.h>
+	<SDL2/SDL_ttf.h>
+
