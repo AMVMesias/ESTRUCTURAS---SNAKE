@@ -408,7 +408,7 @@
 	"begin_code.h"
 	"close_code.h"
 
-1705857752 c:\program files\codeblocks\sdl2\include\sdl2\sdl_mixer.h
+1723522493 c:\program files\codeblocks\sdl2\include\sdl2\sdl_mixer.h
 	"SDL_stdinc.h"
 	"SDL_rwops.h"
 	"SDL_audio.h"
@@ -417,7 +417,7 @@
 	"begin_code.h"
 	"close_code.h"
 
-1704144973 c:\program files\codeblocks\sdl2\include\sdl2\sdl_image.h
+1723522328 c:\program files\codeblocks\sdl2\include\sdl2\sdl_image.h
 	"SDL.h"
 	"SDL_version.h"
 	"begin_code.h"
@@ -516,6 +516,58 @@
 	"Game.h"
 
 1724816257 source:c:\users\juand\downloads\snake\estructuras---snake\snakegame\score.cpp
+	"Score.h"
+	<SDL2/SDL_image.h>
+	<SDL2/SDL_ttf.h>
+
+1724858979 source:c:\users\leonel\desktop\4tosemestre\estructuras\3er parcial\estructuras---snake\snakegame\engine.cpp
+	"Engine.h"
+	<SDL2/SDL_image.h>
+	<SDL2/SDL_mixer.h>
+	<SDL2/SDL_ttf.h>
+
+1724858979 c:\users\leonel\desktop\4tosemestre\estructuras\3er parcial\estructuras---snake\snakegame\engine.h
+	<SDL2/SDL.h>
+	<SDL2/SDL_mixer.h>
+	<SDL2/SDL_image.h>
+	<SDL2/SDL_ttf.h>
+	"Menu.h"
+	"Game.h"
+	"Score.h"
+
+1724858979 c:\users\leonel\desktop\4tosemestre\estructuras\3er parcial\estructuras---snake\snakegame\menu.h
+	<SDL2/SDL.h>
+	<SDL2/SDL_ttf.h>
+
+1725067668 c:\users\leonel\desktop\4tosemestre\estructuras\3er parcial\estructuras---snake\snakegame\game.h
+	<SDL2/SDL.h>
+	<SDL2/SDL_mixer.h>
+	<SDL2/SDL_ttf.h>
+	<vector>
+	<cstdlib>
+	<string>
+	<iostream>
+	<chrono>
+	"Score.h"
+
+1724858979 c:\users\leonel\desktop\4tosemestre\estructuras\3er parcial\estructuras---snake\snakegame\score.h
+	<SDL2/SDL.h>
+	<SDL2/SDL_image.h>
+	<SDL2/SDL_mixer.h>
+	<SDL2/SDL_ttf.h>
+	<vector>
+	<string>
+
+1724858980 source:c:\users\leonel\desktop\4tosemestre\estructuras\3er parcial\estructuras---snake\snakegame\main.cpp
+	<windows.h>
+	"Engine.h"
+
+1724858979 source:c:\users\leonel\desktop\4tosemestre\estructuras\3er parcial\estructuras---snake\snakegame\menu.cpp
+	"Menu.h"
+	<SDL2/SDL_image.h>
+	"Game.h"
+
+1724858979 source:c:\users\leonel\desktop\4tosemestre\estructuras\3er parcial\estructuras---snake\snakegame\score.cpp
 	"Score.h"
 	<SDL2/SDL_image.h>
 	<SDL2/SDL_ttf.h>
