@@ -9,15 +9,15 @@
 #include <string>
 #include <iostream>
 #include <chrono>
+#include <fstream>
+#include "nlohmann/json.hpp"
 #include "Score.h"
 
 const int CELL_SIZE = 20;  // Tamaño de cada celda del juego
 
 enum Direction { UP, DOWN, LEFT, RIGHT };
 enum GameLevel { LEVEL_1, LEVEL_2, LEVEL_3 };
-enum GameState { RUNNING, PAUSED, MENU };
-enum MenuOption { RESUME, MAIN_MENU, EXIT };
-
+enum GameState { RUNNING, PAUSED };
 
 struct Point {
     int x, y;  // Coordenadas
@@ -26,7 +26,7 @@ struct Point {
 class Game {
 public:
     Game(SDL_Renderer* renderer)
-        : renderer(renderer), isRunning(true), direction(RIGHT), score(0), music(nullptr), eatSound(nullptr), currentLevel(LEVEL_1), scoreBoard(renderer),  gameState(MENU), selectedOption(RESUME)  {
+        : renderer(renderer), isRunning(true), direction(RIGHT), score(0), music(nullptr), eatSound(nullptr), currentLevel(LEVEL_1), scoreBoard(renderer), gameOver(false), gameState(RUNNING), selectedOption(0), isGameStarted(false) {
         snake.push_back({SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2});
         generarParedes();  // Generar paredes del borde
         generarComida();  // Generar la primera comida
@@ -42,27 +42,23 @@ public:
     }
 
     void iniciar(int difficulty) {
-        gameState = RUNNING;
         while (isRunning) {
             manejarEventos();
-            if (gameState == RUNNING) {
+            if (gameState == RUNNING && isGameStarted) {
                 actualizar();
             }
             renderizar();
-            SDL_Delay(1000 / (10 + difficulty * 5));
+            SDL_Delay(1000 / (10 + difficulty * 5));  // Controlar la velocidad del juego
 
-            if (gameState == RUNNING) {
-                auto currentTime = std::chrono::steady_clock::now();
-                auto elapsedTime = std::chrono::duration_cast<std::chrono::seconds>(currentTime - startTime).count();
-                if (elapsedTime >= 4 && currentLevel == LEVEL_1) {
-                    nivel2();
-                } else if (elapsedTime >= 15 && currentLevel == LEVEL_2) {
-                    nivel3();
-                }
+            auto currentTime = std::chrono::steady_clock::now();
+            auto elapsedTime = std::chrono::duration_cast<std::chrono::seconds>(currentTime - startTime).count();
+            if (elapsedTime >= 4 && currentLevel == LEVEL_1) {
+                nivel2();
+            } else if (elapsedTime >= 15 && currentLevel == LEVEL_2) {
+                nivel3();
             }
         }
     }
-
 
     void manejarEventos() {
         SDL_Event event;
@@ -72,78 +68,36 @@ public:
                 SDL_Quit();
                 exit(0);
             } else if (event.type == SDL_KEYDOWN) {
+                if (!isGameStarted) {
+                    isGameStarted = true;  // Iniciar el juego al presionar cualquier tecla
+                }
                 switch (event.key.keysym.sym) {
-                    case SDLK_UP:
-                        if (gameState == RUNNING && direction != DOWN) {
-                            direction = UP;
-                        } else if (gameState == PAUSED || gameState == MENU) {
-                            selectedOption = (MenuOption)((selectedOption - 1 + 3) % 3);
-                        }
+                    case SDLK_UP: case SDLK_w:
+                        if (direction != DOWN) direction = UP;
                         break;
-                    case SDLK_DOWN:
-                        if (gameState == RUNNING && direction != UP) {
-                            direction = DOWN;
-                        } else if (gameState == PAUSED || gameState == MENU) {
-                            selectedOption = (MenuOption)((selectedOption + 1) % 3);
-                        }
+                    case SDLK_DOWN: case SDLK_s:
+                        if (direction != UP) direction = DOWN;
                         break;
-                    case SDLK_LEFT:
-                        if (gameState == RUNNING && direction != RIGHT) direction = LEFT;
+                    case SDLK_LEFT: case SDLK_a:
+                        if (direction != RIGHT) direction = LEFT;
                         break;
-                    case SDLK_RIGHT:
-                        if (gameState == RUNNING && direction != LEFT) direction = RIGHT;
+                    case SDLK_RIGHT: case SDLK_d:
+                        if (direction != LEFT) direction = RIGHT;
                         break;
                     case SDLK_ESCAPE:
-                    case SDLK_p:
-                        if (gameState == RUNNING) {
-                            gameState = PAUSED;
-                            selectedOption = RESUME;
-                        } else if (gameState == PAUSED) {
-                            gameState = RUNNING;
-                        }
-                        break;
-                    case SDLK_RETURN:
-                        if (gameState == PAUSED || gameState == MENU) {
-                            executeMenuOption();
-                        }
+                        togglePause();
                         break;
                 }
+            }
+            if (gameState == PAUSED) {
+                handlePauseInput(event);
             }
         }
     }
 
-    void executeMenuOption() {
-        switch (selectedOption) {
-            case RESUME:
-                gameState = RUNNING;
-                break;
-            case MAIN_MENU:
-                resetGame();
-                gameState = MENU;
-                break;
-            case EXIT:
-                isRunning = false;
-                exit(0);
-                break;
-        }
-    }
-
-    void resetGame() {
-        snake.clear();
-        snake.push_back({SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2});
-        direction = RIGHT;
-        score = 0;
-        currentLevel = LEVEL_1;
-        walls.clear();
-        generarParedes();
-        generarComida();
-        startTime = std::chrono::steady_clock::now();
-    }
-
     void actualizar() {
-        if (gameState == PAUSED) {
-            return; // No actualizar si el juego está pausado
-        }
+        if (gameOver) return;
+
         Point newHead = snake.front();
         switch (direction) {
             case UP:    newHead.y -= CELL_SIZE; break;
@@ -153,7 +107,7 @@ public:
         }
 
         if (verificarColision(newHead)) {
-            isRunning = false;
+            handleGameOver();
             return;
         }
 
@@ -173,58 +127,38 @@ public:
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
-        if (gameState == RUNNING || gameState == PAUSED) {
-            // Renderizar comida
+        if (gameOver) {
+            renderGameOver();
+        } else {
             SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
             SDL_Rect foodRect = { food.x, food.y, CELL_SIZE, CELL_SIZE };
             SDL_RenderFillRect(renderer, &foodRect);
 
-            // Renderizar serpiente
             SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
             for (const auto& segment : snake) {
                 SDL_Rect snakeRect = { segment.x, segment.y, CELL_SIZE, CELL_SIZE };
                 SDL_RenderFillRect(renderer, &snakeRect);
             }
 
-            // Renderizar paredes
             SDL_SetRenderDrawColor(renderer, currentLevel == LEVEL_1 ? 128 : (currentLevel == LEVEL_2 ? 64 : 32), 128, 128, 255);
             for (const auto& wall : walls) {
                 SDL_Rect wallRect = { wall.x, wall.y, CELL_SIZE, CELL_SIZE };
                 SDL_RenderFillRect(renderer, &wallRect);
             }
 
-            // Renderizar puntuación en pantalla
             SDL_Color white = {255, 255, 255, 255};
             scoreBoard.renderText(("Score: " + std::to_string(score)).c_str(), 9, 9, white);
 
-            if (gameState == PAUSED) {
-                renderMenu("PAUSED");
+            if (!isGameStarted) {
+                renderStartMessage(); // Mostrar mensaje para iniciar el juego
             }
-        } else if (gameState == MENU) {
-            Menu menu(renderer);
-            menu.render();
+
+            if (gameState == PAUSED) {
+                renderPauseMenu();
+            }
         }
 
         SDL_RenderPresent(renderer);
-    }
-
-
-    void renderMenu(const std::string& title) {
-        // Semi-transparent overlay
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 200);
-        SDL_Rect overlay = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
-        SDL_RenderFillRect(renderer, &overlay);
-
-        SDL_Color white = {255, 255, 255, 255};
-        SDL_Color selected = {0, 255, 0, 255};
-
-        // Render title
-        scoreBoard.renderText(title.c_str(), SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 - 100, selected);
-
-        // Render menu options
-        scoreBoard.renderText("Resume", SCREEN_WIDTH / 2 - 50, SCREEN_HEIGHT / 2, selectedOption == RESUME ? selected : white);
-        scoreBoard.renderText("Main Menu", SCREEN_WIDTH / 2 - 50, SCREEN_HEIGHT / 2 + 50, selectedOption == MAIN_MENU ? selected : white);
-        scoreBoard.renderText("EXIT", SCREEN_WIDTH / 2 - 50, SCREEN_HEIGHT / 2 + 100, selectedOption == EXIT ? selected : white);
     }
 
     void nivel2() {
@@ -236,6 +170,24 @@ public:
     }
 
 private:
+    SDL_Renderer* renderer;
+    std::vector<Point> snake;
+    std::vector<Point> walls;
+    Point food;
+    Direction direction;
+    bool isRunning;
+    int score;
+    Mix_Music* music;
+    Mix_Chunk* eatSound;
+    GameLevel currentLevel;
+    Score scoreBoard;
+    std::chrono::steady_clock::time_point startTime;
+    bool gameOver;
+    GameState gameState;
+    int selectedOption; // Para seleccionar opciones en el menú de pausa
+    std::string playerName;
+    bool isGameStarted; // Indica si el juego ha comenzado
+
     bool inicializarMusica() {
         if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
             return false;
@@ -352,6 +304,7 @@ private:
         }
         posicionarSerpienteEnLugarSeguro();
         generarComida();
+        isGameStarted = false; // Reiniciar estado del juego al cambiar de nivel
     }
 
     bool esperarDecisionJugador() {
@@ -380,20 +333,117 @@ private:
         SDL_Quit();
     }
 
-    SDL_Renderer* renderer;
-    std::vector<Point> snake;
-    std::vector<Point> walls;
-    Point food;
-    Direction direction;
-    bool isRunning;
-    int score;
-    Mix_Music* music;
-    Mix_Chunk* eatSound;
-    GameLevel currentLevel;
-    Score scoreBoard;
-    GameState gameState;
-    MenuOption selectedOption;
-    std::chrono::steady_clock::time_point startTime;
+    void handleGameOver() {
+        gameOver = true;
+        Mix_HaltMusic();
+        // Reproducir sonido de game over si lo tienes
+    }
+
+    void renderGameOver() {
+        SDL_Color white = {255, 255, 255, 255};
+        scoreBoard.renderText("Game Over", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 - 100, white);
+        scoreBoard.renderText(("Score: " + std::to_string(score)).c_str(), SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 - 50, white);
+        scoreBoard.renderText("Enter your name:", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2, white);
+        scoreBoard.renderText(playerName.c_str(), SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 + 50, white);
+    }
+
+    void saveScore() {
+        nlohmann::json j;
+        std::ifstream ifs("scores.json");
+        if (ifs.good()) {
+            ifs >> j;
+        }
+        ifs.close();
+
+        nlohmann::json newScore;
+        newScore["name"] = playerName;
+        newScore["score"] = score;
+        newScore["time"] = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - startTime).count();
+
+        j["scores"].push_back(newScore);
+
+        std::ofstream ofs("scores.json");
+        ofs << j.dump(4);
+        ofs.close();
+    }
+
+    void handleGameOverInput(SDL_Keycode key) {
+        if (key == SDLK_RETURN && !playerName.empty()) {
+            saveScore();
+            isRunning = false;
+        } else if (key == SDLK_BACKSPACE && !playerName.empty()) {
+            playerName.pop_back();
+        } else if (key >= SDLK_a && key <= SDLK_z && playerName.length() < 20) {
+            playerName += (char)key;
+        }
+    }
+
+    void togglePause() {
+        if (gameState == RUNNING) {
+            gameState = PAUSED;
+        } else {
+            gameState = RUNNING;
+        }
+    }
+
+    void handlePauseInput(const SDL_Event& event) {
+        if (event.type == SDL_KEYDOWN) {
+            if (event.key.keysym.sym == SDLK_UP) {
+                selectedOption = (selectedOption - 1 + 3) % 3; // Cambiar opción hacia arriba
+            } else if (event.key.keysym.sym == SDLK_DOWN) {
+                selectedOption = (selectedOption + 1) % 3; // Cambiar opción hacia abajo
+            } else if (event.key.keysym.sym == SDLK_RETURN) {
+                executePauseOption();
+            }
+        }
+    }
+
+    void renderPauseMenu() {
+        SDL_Color white = {255, 255, 255, 255};
+        SDL_Color selectedColor = {0, 255, 0, 255}; // Color para la opción seleccionada
+
+        scoreBoard.renderText("PAUSED", SCREEN_WIDTH / 2 - 50, SCREEN_HEIGHT / 2 - 100, white);
+        scoreBoard.renderText("Reiniciar Juego", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 - 50, selectedOption == 0 ? selectedColor : white);
+        scoreBoard.renderText("Menu Principal", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2, selectedOption == 1 ? selectedColor : white);
+        scoreBoard.renderText("Salir del Juego", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 + 50, selectedOption == 2 ? selectedColor : white);
+    }
+
+    void executePauseOption() {
+        switch (selectedOption) {
+            case 0: // Reiniciar Juego
+                resetGame();
+                gameState = RUNNING;
+                break;
+            case 1: // Menu Principal
+                resetGame();
+                // Aquí puedes agregar lógica para regresar al menú principal
+                break;
+            case 2: // Salir del Juego
+                isRunning = false;
+                break;
+        }
+    }
+
+    void resetGame() {
+        snake.clear();
+        snake.push_back({SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2});
+        direction = RIGHT;
+        score = 0;
+        currentLevel = LEVEL_1;
+        walls.clear();
+        generarParedes();
+        generarComida();
+        startTime = std::chrono::steady_clock::now();
+        gameOver = false;
+        gameState = RUNNING;
+        selectedOption = 0; // Resetear opción seleccionada
+        isGameStarted = false; // Reiniciar estado del juego
+    }
+
+    void renderStartMessage() {
+        SDL_Color white = {255, 255, 255, 255};
+        scoreBoard.renderText("Presiona una tecla para empezar", SCREEN_WIDTH / 2 - 150, SCREEN_HEIGHT / 2 - 20, white);
+    }
 };
 
 #endif // SNAKE_GAME_H

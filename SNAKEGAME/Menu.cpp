@@ -1,6 +1,7 @@
 #include "Menu.h"
 #include <SDL2/SDL_image.h>
 #include "Game.h"
+#include "Score.h"
 
 Menu::Menu(SDL_Renderer* renderer)
     : renderer(renderer), selectedOption(0), currentState(MenuState::MAIN), selectedDifficulty(0) {
@@ -33,7 +34,7 @@ void Menu::handleEvents(bool &isRunning) {
                             if (selectedOption == 0) {
                                 currentState = MenuState::DIFFICULTY;
                             } else if (selectedOption == 1) {
-                                // TODO: Show Scores
+                                showScores();
                             } else if (selectedOption == 2) {
                                 isRunning = false;
                                 exit(0);  // Forzar la salida del programa
@@ -113,3 +114,21 @@ void Menu::renderText(const char* text, int x, int y, SDL_Color color, bool cent
     SDL_FreeSurface(surface);
     SDL_DestroyTexture(texture);
 }
+
+void Menu::showScores() {
+    Score scoreBoard(renderer);
+    scoreBoard.display();
+
+    SDL_Event event;
+    bool backToMenu = false;
+    while (!backToMenu) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                exit(0);
+            } else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
+                backToMenu = true;
+            }
+        }
+    }
+}
+

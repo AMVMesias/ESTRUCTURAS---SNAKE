@@ -16,6 +16,7 @@ public:
     ~Menu();
     void handleEvents(bool &isRunning);
     void render();
+    void showScores();
 
 private:
     SDL_Renderer* renderer;
