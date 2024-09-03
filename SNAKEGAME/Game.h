@@ -3,7 +3,8 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_mixer.h>
-#include <SDL2/SDL_ttf.h>    // Para renderizar texto
+#include <SDL2/SDL_ttf.h>
+#include <SDL2/SDL_image.h>
 #include <vector>
 #include <cstdlib>
 #include <string>
@@ -26,15 +27,18 @@ struct Point {
 class Game {
 public:
     Game(SDL_Renderer* renderer)
-        : renderer(renderer), isRunning(true), direction(RIGHT), score(0), music(nullptr), eatSound(nullptr), currentLevel(LEVEL_1), scoreBoard(renderer), gameOver(false), gameState(RUNNING), selectedOption(0), isGameStarted(false), gameOverOption(0), difficulty(1) {
+        : renderer(renderer), direction(RIGHT), score(0), music(nullptr), eatSound(nullptr),
+          currentLevel(LEVEL_1), scoreBoard(renderer), gameOver(false), gameState(RUNNING),
+          selectedOption(0), gameOverOption(0), isGameStarted(false), difficulty(1),
+          headTexture(nullptr), bodyTexture(nullptr), isRunning(true) {
         snake.push_back({SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2});
-        generarParedes();  // Generar paredes del borde
-        generarComida();  // Generar la primera comida
+        generarParedes();
+        generarComida();
 
-        if (!inicializarMusica() || !inicializarSonido()) {
+        if (!inicializarMusica() || !inicializarSonido() || !cargarTexturas()) {
             isRunning = false;
         }
-        startTime = std::chrono::steady_clock::now();  // Guardar el tiempo de inicio
+        startTime = std::chrono::steady_clock::now();
     }
 
     ~Game() {
@@ -144,11 +148,8 @@ public:
             SDL_Rect foodRect = { food.x, food.y, CELL_SIZE, CELL_SIZE };
             SDL_RenderFillRect(renderer, &foodRect);
 
-            SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-            for (const auto& segment : snake) {
-                SDL_Rect snakeRect = { segment.x, segment.y, CELL_SIZE, CELL_SIZE };
-                SDL_RenderFillRect(renderer, &snakeRect);
-            }
+            // Renderizar la serpiente con imágenes
+            renderSnake();
 
             SDL_SetRenderDrawColor(renderer, currentLevel == LEVEL_1 ? 128 : (currentLevel == LEVEL_2 ? 64 : 32), 128, 128, 255);
             for (const auto& wall : walls) {
@@ -160,7 +161,7 @@ public:
             scoreBoard.renderText(("Score: " + std::to_string(score)).c_str(), 9, 9, white);
 
             if (!isGameStarted) {
-                renderStartMessage(); // Mostrar mensaje para iniciar el juego
+                renderStartMessage();
             }
 
             if (gameState == PAUSED) {
@@ -169,6 +170,16 @@ public:
         }
 
         SDL_RenderPresent(renderer);
+    }
+
+    void limpiar() {
+        Mix_FreeMusic(music);
+        Mix_FreeChunk(eatSound);
+        Mix_CloseAudio();
+        SDL_DestroyTexture(headTexture);
+        SDL_DestroyTexture(bodyTexture);
+        SDL_DestroyRenderer(renderer);
+        SDL_Quit();
     }
 
     void nivel2() {
@@ -201,6 +212,43 @@ private:
     std::string playerName;
     bool isGameStarted; // Indica si el juego ha comenzado
     int difficulty; // Dificultad del juego
+    SDL_Texture* headTexture;
+    SDL_Texture* bodyTexture;
+
+    // Función para cargar texturas
+    bool cargarTexturas() {
+        headTexture = loadTexture("assets/images/snake_head.png");
+        bodyTexture = loadTexture("assets/images/snake_body.png");
+        return (headTexture != nullptr && bodyTexture != nullptr);
+    }
+
+    // Función auxiliar para cargar texturas
+    SDL_Texture* loadTexture(const char* path) {
+        SDL_Surface* surface = IMG_Load(path);
+        if (!surface) {
+            std::cerr << "Error loading image: " << IMG_GetError() << std::endl;
+            return nullptr;
+        }
+        SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+        SDL_FreeSurface(surface);
+        return texture;
+    }
+
+
+    // Nueva función para renderizar la serpiente
+    void renderSnake() {
+        for (size_t i = 0; i < snake.size(); ++i) {
+            SDL_Rect destRect = { snake[i].x, snake[i].y, CELL_SIZE, CELL_SIZE };
+            if (i == 0) {
+                // Renderizar la cabeza
+                SDL_RenderCopy(renderer, headTexture, NULL, &destRect);
+            } else {
+                // Renderizar el cuerpo
+                SDL_RenderCopy(renderer, bodyTexture, NULL, &destRect);
+            }
+        }
+    }
+
 
     bool inicializarMusica() {
         if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
@@ -339,13 +387,6 @@ private:
         }
     }
 
-    void limpiar() {
-        Mix_FreeMusic(music);
-        Mix_FreeChunk(eatSound);
-        Mix_CloseAudio();
-        SDL_DestroyRenderer(renderer);
-        SDL_Quit();
-    }
 
     void handleGameOver() {
         gameOver = true;
@@ -432,12 +473,14 @@ private:
         if (key == SDLK_RETURN) {
             if (!playerName.empty()) {
                 saveScore();
-                isRunning = false;
+                resetGame();  // Reiniciar el juego después de guardar
+                gameState = RUNNING;
+                reiniciarMusica();
             }
         } else if (key == SDLK_ESCAPE) {
             resetGame();
             gameState = RUNNING;
-            reiniciarMusica();  // Reiniciar la música
+            reiniciarMusica();
         } else if (key == SDLK_BACKSPACE && !playerName.empty()) {
             playerName.pop_back();
         }
