@@ -138,8 +138,12 @@ public:
     }
 
     void renderizar() {
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
+
+        // Renderizar la textura del fondo
+        SDL_Rect backgroundRect = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};  // Asume que el fondo cubre toda la pantalla
+        SDL_RenderCopy(renderer, backgroundTexture, NULL, &backgroundRect);
+
         if (gameOver) {
             renderGameOver();
         } else {
@@ -150,14 +154,16 @@ public:
             // Renderizar la serpiente con imágenes
             renderSnake();
 
-            // Resto del código de renderizado
+            // Resto del código de renderizado para paredes y otros elementos
             SDL_SetRenderDrawColor(renderer, currentLevel == LEVEL_1 ? 128 : (currentLevel == LEVEL_2 ? 64 : 32), 128, 128, 255);
             for (const auto& wall : walls) {
                 SDL_Rect wallRect = { wall.x, wall.y, CELL_SIZE, CELL_SIZE };
                 SDL_RenderFillRect(renderer, &wallRect);
             }
+
             SDL_Color white = {255, 255, 255, 255};
             scoreBoard.renderText(("Score: " + std::to_string(score)).c_str(), 9, 9, white);
+
             if (!isGameStarted) {
                 renderStartMessage();
             }
@@ -165,6 +171,7 @@ public:
                 renderPauseMenu();
             }
         }
+
         SDL_RenderPresent(renderer);
     }
 
@@ -175,9 +182,11 @@ public:
         SDL_DestroyTexture(headTexture);
         SDL_DestroyTexture(bodyTexture);
         SDL_DestroyTexture(appleTexture);
+        SDL_DestroyTexture(backgroundTexture);  // Liberar la textura del fondo
         SDL_DestroyRenderer(renderer);
         SDL_Quit();
     }
+
 
     void nivel2() {
         if (gameOver) return;  // No mostrar el mensaje si el juego ha terminado
@@ -212,14 +221,17 @@ private:
     SDL_Texture* headTexture;
     SDL_Texture* bodyTexture;
     SDL_Texture* appleTexture;
+     SDL_Texture* backgroundTexture;
 
 
     bool cargarTexturas() {
         headTexture = loadTexture("assets/images/snake_head.png");
         bodyTexture = loadTexture("assets/images/snake_body.png");
-        appleTexture = loadTexture("assets/images/apple.png"); // Cargar la textura de la manzana
-        return (headTexture != nullptr && bodyTexture != nullptr && appleTexture != nullptr);
+        appleTexture = loadTexture("assets/images/apple.png");
+        backgroundTexture = loadTexture("assets/images/background.png");
+        return (headTexture != nullptr && bodyTexture != nullptr && appleTexture != nullptr && backgroundTexture != nullptr);
     }
+
 
     // Función auxiliar para cargar texturas
     SDL_Texture* loadTexture(const char* path) {
