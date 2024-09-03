@@ -17,6 +17,18 @@
             "name": "a",
             "score": 10,
             "time": 11
+        },
+        {
+            "difficulty": 1,
+            "name": "ALI MI",
+            "score": 0,
+            "time": 10
+        },
+        {
+            "difficulty": 1,
+            "name": "A",
+            "score": 130,
+            "time": 64
         }
     ]
 }

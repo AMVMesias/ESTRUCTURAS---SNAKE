@@ -140,35 +140,31 @@ public:
     void renderizar() {
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
-
         if (gameOver) {
             renderGameOver();
         } else {
-            SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+            // Renderizar la comida como una manzana
             SDL_Rect foodRect = { food.x, food.y, CELL_SIZE, CELL_SIZE };
-            SDL_RenderFillRect(renderer, &foodRect);
+            SDL_RenderCopy(renderer, appleTexture, NULL, &foodRect);
 
             // Renderizar la serpiente con imágenes
             renderSnake();
 
+            // Resto del código de renderizado
             SDL_SetRenderDrawColor(renderer, currentLevel == LEVEL_1 ? 128 : (currentLevel == LEVEL_2 ? 64 : 32), 128, 128, 255);
             for (const auto& wall : walls) {
                 SDL_Rect wallRect = { wall.x, wall.y, CELL_SIZE, CELL_SIZE };
                 SDL_RenderFillRect(renderer, &wallRect);
             }
-
             SDL_Color white = {255, 255, 255, 255};
             scoreBoard.renderText(("Score: " + std::to_string(score)).c_str(), 9, 9, white);
-
             if (!isGameStarted) {
                 renderStartMessage();
             }
-
             if (gameState == PAUSED) {
                 renderPauseMenu();
             }
         }
-
         SDL_RenderPresent(renderer);
     }
 
@@ -178,6 +174,7 @@ public:
         Mix_CloseAudio();
         SDL_DestroyTexture(headTexture);
         SDL_DestroyTexture(bodyTexture);
+        SDL_DestroyTexture(appleTexture);
         SDL_DestroyRenderer(renderer);
         SDL_Quit();
     }
@@ -214,12 +211,14 @@ private:
     int difficulty; // Dificultad del juego
     SDL_Texture* headTexture;
     SDL_Texture* bodyTexture;
+    SDL_Texture* appleTexture;
 
-    // Función para cargar texturas
+
     bool cargarTexturas() {
         headTexture = loadTexture("assets/images/snake_head.png");
         bodyTexture = loadTexture("assets/images/snake_body.png");
-        return (headTexture != nullptr && bodyTexture != nullptr);
+        appleTexture = loadTexture("assets/images/apple.png"); // Cargar la textura de la manzana
+        return (headTexture != nullptr && bodyTexture != nullptr && appleTexture != nullptr);
     }
 
     // Función auxiliar para cargar texturas
