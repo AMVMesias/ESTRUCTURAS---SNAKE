@@ -25,17 +25,19 @@ void Menu::handleEvents(bool &isRunning) {
                 case MenuState::MAIN:
                     switch (event.key.keysym.sym) {
                         case SDLK_UP:
-                            selectedOption = (selectedOption - 1 + 3) % 3;
+                            selectedOption = (selectedOption - 1 + 4) % 4;  // Ajuste a 4 opciones
                             break;
                         case SDLK_DOWN:
-                            selectedOption = (selectedOption + 1) % 3;
+                            selectedOption = (selectedOption + 1) % 4;  // Ajuste a 4 opciones
                             break;
                         case SDLK_RETURN:
                             if (selectedOption == 0) {
                                 currentState = MenuState::DIFFICULTY;
                             } else if (selectedOption == 1) {
-                                showScores();
+                                showInstructions();
                             } else if (selectedOption == 2) {
+                                showScores();
+                            } else if (selectedOption == 3) {
                                 isRunning = false;
                                 exit(0);  // Forzar la salida del programa
                             }
@@ -51,18 +53,16 @@ void Menu::handleEvents(bool &isRunning) {
                             selectedDifficulty = (selectedDifficulty + 1) % 3;
                             break;
                         case SDLK_RETURN:
-                            // Here you should create a Game instance and start it with the selected difficulty
                             {
                                 Game* game = new Game(renderer);
-                                game->iniciar(selectedDifficulty + 1); // Assuming difficulty levels are 1-based (1 for Easy, 2 for Medium, 3 for Hard)
+                                game->iniciar(selectedDifficulty + 1);
 
-                                // Run the game loop
                                 bool gameRunning = true;
                                 while (gameRunning) {
                                     game->manejarEventos();
                                     game->actualizar();
                                     game->renderizar();
-                                    SDL_Delay(1000 / (10 + selectedDifficulty * 5)); // Adjust the delay based on difficulty
+                                    SDL_Delay(1000 / (10 + selectedDifficulty * 5));
                                 }
 
                                 delete game;
@@ -71,6 +71,11 @@ void Menu::handleEvents(bool &isRunning) {
                         case SDLK_ESCAPE:
                             currentState = MenuState::MAIN;
                             break;
+                    }
+                    break;
+                case MenuState::INSTRUCTIONS:
+                    if (event.key.keysym.sym == SDLK_ESCAPE) {
+                        currentState = MenuState::MAIN;
                     }
                     break;
             }
@@ -89,17 +94,30 @@ void Menu::render() {
 
     if (currentState == MenuState::MAIN) {
         renderText("Iniciar Juego", SCREEN_WIDTH / 2, 250, selectedOption == 0 ? green : white, true);
-        renderText("Score", SCREEN_WIDTH / 2, 350, selectedOption == 1 ? green : white, true);
-        renderText("Salir", SCREEN_WIDTH / 2, 450, selectedOption == 2 ? green : white, true);
+        renderText("Cómo Jugar", SCREEN_WIDTH / 2, 300, selectedOption == 1 ? green : white, true);
+        renderText("Score", SCREEN_WIDTH / 2, 350, selectedOption == 2 ? green : white, true);
+        renderText("Salir", SCREEN_WIDTH / 2, 400, selectedOption == 3 ? green : white, true);
     } else if (currentState == MenuState::DIFFICULTY) {
         renderText("Selecciona la dificultad:", SCREEN_WIDTH / 2, 200, white, true);
         renderText("Fácil", SCREEN_WIDTH / 2, 300, selectedDifficulty == 0 ? green : white, true);
         renderText("Medio", SCREEN_WIDTH / 2, 400, selectedDifficulty == 1 ? green : white, true);
         renderText("Difícil", SCREEN_WIDTH / 2, 500, selectedDifficulty == 2 ? green : white, true);
+    } else if (currentState == MenuState::INSTRUCTIONS) {
+        TTF_CloseFont(font);
+        font = TTF_OpenFont("assets/fonts/fuente.ttf", 20);
+        renderText("Instrucciones:", SCREEN_WIDTH / 2, 150, white, true);
+        renderText("Flechas de dirección: Mover la serpiente", SCREEN_WIDTH / 2, 250, white, true);
+        renderText("WASD: Mover la serpiente", SCREEN_WIDTH / 2, 300, white, true);
+        renderText("Enter: Seleccionar opción", SCREEN_WIDTH / 2, 350, white, true);
+        renderText("Esc: Retroceder / Pausar", SCREEN_WIDTH / 2, 400, white, true);
+        renderText("Presiona Esc para volver al menú", SCREEN_WIDTH / 2, 500, white, true);
+        TTF_CloseFont(font);
+        font = TTF_OpenFont("assets/fonts/fuente.ttf", 30);
     }
 
     SDL_RenderPresent(renderer);
 }
+
 
 void Menu::renderText(const char* text, int x, int y, SDL_Color color, bool center) {
     SDL_Surface* surface = TTF_RenderText_Solid(font, text, color);
@@ -130,5 +148,9 @@ void Menu::showScores() {
             }
         }
     }
+}
+
+void Menu::showInstructions() {
+    currentState = MenuState::INSTRUCTIONS;
 }
 

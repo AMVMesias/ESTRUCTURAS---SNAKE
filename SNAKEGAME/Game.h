@@ -18,7 +18,7 @@ const int CELL_SIZE = 20;  // Tamaño de cada celda del juego
 
 enum Direction { UP, DOWN, LEFT, RIGHT };
 enum GameLevel { LEVEL_1, LEVEL_2, LEVEL_3 };
-enum GameState { RUNNING, PAUSED, GAME_OVER };
+enum GameState { RUNNING, PAUSED, GAME_OVER, MENU };
 
 struct Point {
     int x, y;  // Coordenadas
@@ -112,6 +112,9 @@ public:
 
     void actualizar() {
         if (gameOver) return;
+        if (gameState == PAUSED) {
+            return; // No actualizar si el juego está pausado
+        }
 
         Point newHead = snake.front();
         switch (direction) {
@@ -537,17 +540,15 @@ private:
     void executePauseOption() {
         switch (selectedOption) {
             case 0: // Reiniciar Juego
-                resetGame();
                 gameState = RUNNING;
                 reiniciarMusica();  // Reiniciar la música al reiniciar el juego
                 break;
             case 1: // Menu Principal
-                resetGame();
-                gameState = RUNNING;
+                gameState = MENU;
                 reiniciarMusica();  // Reiniciar la música al volver al menú principal
                 break;
             case 2: // Salir del Juego
-                isRunning = false;
+                exit(0);
                 break;
         }
     }

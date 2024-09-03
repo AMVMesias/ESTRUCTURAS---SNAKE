@@ -7,7 +7,8 @@ const int SCREEN_HEIGHT = 600;
 
 enum class MenuState {
     MAIN,
-    DIFFICULTY
+    DIFFICULTY,
+    INSTRUCTIONS
 };
 
 class Menu {
@@ -17,6 +18,7 @@ public:
     void handleEvents(bool &isRunning);
     void render();
     void showScores();
+    void showInstructions();
 
 private:
     SDL_Renderer* renderer;
