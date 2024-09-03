@@ -372,7 +372,7 @@ private:
 
         bool continuar = esperarDecisionJugador();
         if (!continuar) {
-            isRunning = false;
+            returnToMainMenu();
             return;
         }
 

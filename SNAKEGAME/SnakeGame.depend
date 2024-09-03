@@ -668,7 +668,7 @@
 	<fstream>
 	<algorithm>
 
-1725390341 source:c:\users\leonel\desktop\4tosemestre\estructuras\3er parcial\estructuras---snake\snakegame\engine.cpp
+1725405263 source:c:\users\leonel\desktop\4tosemestre\estructuras\3er parcial\estructuras---snake\snakegame\engine.cpp
 	"Engine.h"
 	<SDL2/SDL_image.h>
 	<SDL2/SDL_mixer.h>
@@ -688,7 +688,7 @@
 	<SDL2/SDL_ttf.h>
 	<SDL2/SDL_mixer.h>
 
-1725405589 c:\users\leonel\desktop\4tosemestre\estructuras\3er parcial\estructuras---snake\snakegame\game.h
+1725406627 c:\users\leonel\desktop\4tosemestre\estructuras\3er parcial\estructuras---snake\snakegame\game.h
 	<SDL2/SDL.h>
 	<SDL2/SDL_mixer.h>
 	<SDL2/SDL_ttf.h>
@@ -917,4 +917,10 @@
 	<SDL2/SDL.h>
 	<fstream>
 	<algorithm>
+
+1725405996 source:c:\users\leonel\desktop\4tosemestre\estructuras\3er parcial\estructuras---snake\snakegame\menu.cpp
+	"Menu.h"
+	<SDL2/SDL_image.h>
+	"Game.h"
+	"Score.h"
 
