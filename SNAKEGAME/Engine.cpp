@@ -15,14 +15,14 @@ bool Engine::init() {
     if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) return false;
     if (TTF_Init() == -1) return false;
 
-    window = SDL_CreateWindow("Snake Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_SHOWN);
+    window = SDL_CreateWindow("Snake Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
     if (!window) return false;
 
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     if (!renderer) return false;
 
     menu = new Menu(renderer);
-    game = new Game(renderer);
+    game = new Game(renderer, menu);  // Actualizado: pasamos el puntero a menu
     score = new Score(renderer);
 
     music = Mix_LoadMUS("assets/music/musica.mp3");

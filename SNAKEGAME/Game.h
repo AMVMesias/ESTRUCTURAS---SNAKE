@@ -14,20 +14,23 @@
 #include "nlohmann/json.hpp"
 #include "Score.h"
 
-const int CELL_SIZE = 20;  // Tamaño de cada celda del juego
+const int CELL_SIZE = 20;
+
 
 enum Direction { UP, DOWN, LEFT, RIGHT };
 enum GameLevel { LEVEL_1, LEVEL_2, LEVEL_3 };
 enum GameState { RUNNING, PAUSED, GAME_OVER, MENU };
 
 struct Point {
-    int x, y;  // Coordenadas
+    int x, y;
 };
+
+class Menu;  // Forward declaration
 
 class Game {
 public:
-    Game(SDL_Renderer* renderer)
-        : renderer(renderer), direction(RIGHT), score(0), music(nullptr), eatSound(nullptr),
+    Game(SDL_Renderer* renderer, Menu* menu)
+        : renderer(renderer), menu(menu), direction(RIGHT), score(0), music(nullptr), eatSound(nullptr),
           currentLevel(LEVEL_1), scoreBoard(renderer), gameOver(false), gameState(RUNNING),
           selectedOption(0), gameOverOption(0), isGameStarted(false), difficulty(1),
           headTexture(nullptr), bodyTexture(nullptr), isRunning(true) {
@@ -46,16 +49,16 @@ public:
     }
 
     void iniciar(int difficulty) {
-        this->difficulty = difficulty;  // Guardar la dificultad
+        this->difficulty = difficulty;
         isGameStarted = false;
-        resetGame();  // Resetear el juego al iniciar
+        resetGame();
         while (isRunning) {
             manejarEventos();
             if (gameState == RUNNING && isGameStarted) {
                 actualizar();
             }
             renderizar();
-            SDL_Delay(1000 / (10 + difficulty * 5));  // Controlar la velocidad del juego
+            SDL_Delay(1000 / (10 + difficulty * 5));
 
             auto currentTime = std::chrono::steady_clock::now();
             auto elapsedTime = std::chrono::duration_cast<std::chrono::seconds>(currentTime - startTime).count();
@@ -78,7 +81,7 @@ public:
                 if (gameOver) {
                     handleGameOverInput(event.key.keysym.sym);
                 } else if (!isGameStarted) {
-                    isGameStarted = true;  // Iniciar el juego al presionar cualquier tecla
+                    isGameStarted = true;
                 } else {
                     if (gameState == PAUSED) {
                         handlePauseInput(event);
@@ -97,14 +100,14 @@ public:
                                 if (direction != LEFT) direction = RIGHT;
                                 break;
                             case SDLK_ESCAPE:
-                                togglePause();  // Pausar y reanudar el juego con ESC
+                                togglePause();
                                 break;
                         }
                     }
                 }
             } else if (event.type == SDL_TEXTINPUT) {
                 if (gameOver && playerName.length() < 20) {
-                    playerName += event.text.text;  // Añadir solo la entrada de texto
+                    playerName += event.text.text;
                 }
             }
         }
@@ -202,7 +205,9 @@ public:
     }
 
 private:
+private:
     SDL_Renderer* renderer;
+    Menu* menu;
     std::vector<Point> snake;
     std::vector<Point> walls;
     Point food;
@@ -216,15 +221,16 @@ private:
     std::chrono::steady_clock::time_point startTime;
     bool gameOver;
     GameState gameState;
-    int selectedOption; // Para seleccionar opciones en el menú de pausa
-    int gameOverOption; // Para seleccionar opciones en la pantalla de Game Over
+    int selectedOption;
+    int gameOverOption;
     std::string playerName;
-    bool isGameStarted; // Indica si el juego ha comenzado
-    int difficulty; // Dificultad del juego
+    bool isGameStarted;
+    int difficulty;
     SDL_Texture* headTexture;
     SDL_Texture* bodyTexture;
     SDL_Texture* appleTexture;
-     SDL_Texture* backgroundTexture;
+    SDL_Texture* backgroundTexture;
+
 
 
     bool cargarTexturas() {
@@ -508,19 +514,19 @@ private:
     void togglePause() {
         if (gameState == RUNNING) {
             gameState = PAUSED;
-            Mix_PauseMusic();  // Pausar la música
+            Mix_PauseMusic();
         } else if (gameState == PAUSED) {
             gameState = RUNNING;
-            Mix_ResumeMusic();  // Reanudar la música
+            Mix_ResumeMusic();
         }
     }
 
     void handlePauseInput(const SDL_Event& event) {
         if (event.type == SDL_KEYDOWN) {
             if (event.key.keysym.sym == SDLK_UP) {
-                selectedOption = (selectedOption - 1 + 3) % 3; // Cambiar opción hacia arriba
+                selectedOption = (selectedOption - 1 + 3) % 3;
             } else if (event.key.keysym.sym == SDLK_DOWN) {
-                selectedOption = (selectedOption + 1) % 3; // Cambiar opción hacia abajo
+                selectedOption = (selectedOption + 1) % 3;
             } else if (event.key.keysym.sym == SDLK_RETURN) {
                 executePauseOption();
             }
@@ -541,11 +547,10 @@ private:
         switch (selectedOption) {
             case 0: // Reiniciar Juego
                 gameState = RUNNING;
-                reiniciarMusica();  // Reiniciar la música al reiniciar el juego
+                reiniciarMusica();
                 break;
             case 1: // Menu Principal
-                gameState = MENU;
-                reiniciarMusica();  // Reiniciar la música al volver al menú principal
+                returnToMainMenu();
                 break;
             case 2: // Salir del Juego
                 exit(0);
@@ -553,6 +558,10 @@ private:
         }
     }
 
+    void returnToMainMenu() {
+        isRunning = false;
+        menu->show();
+    }
     void resetGame() {
         snake.clear();
         snake.push_back({SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2});
