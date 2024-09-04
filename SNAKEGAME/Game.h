@@ -520,17 +520,33 @@ private:
         return 180.0;
     }
 
-    void renderSnake() {
+    double calculateSegmentRotation(const Point& current, const Point& next) {
+        if (current.x < next.x) return 0.0;
+        if (current.x > next.x) return 180.0;
+        if (current.y < next.y) return 270.0;
+        if (current.y > next.y) return 90.0;
+        return 0.0;  // Default rotation
+    }
+
+     void renderSnake() {
         for (size_t i = 0; i < snake.size(); ++i) {
             SDL_Rect destRect = { snake[i].x, snake[i].y, CELL_SIZE, CELL_SIZE };
             if (i == 0) {
                 double angle = calculateHeadRotation();
                 SDL_RenderCopyEx(renderer, headTexture, NULL, &destRect, angle, NULL, SDL_FLIP_NONE);
             } else {
-                SDL_RenderCopy(renderer, bodyTexture, NULL, &destRect);
+                double angle = calculateSegmentRotation(snake[i], snake[i-1]);
+                if (angle == 0.0 || angle == 180.0) {
+                    // Horizontal movement, no rotation needed
+                    SDL_RenderCopy(renderer, bodyTexture, NULL, &destRect);
+                } else {
+                    // Vertical movement, apply rotation
+                    SDL_RenderCopyEx(renderer, bodyTexture, NULL, &destRect, angle, NULL, SDL_FLIP_NONE);
+                }
             }
         }
     }
+
 
     bool inicializarMusica() {
         if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
