@@ -16,7 +16,7 @@ Este programa es un implementación del clásico juego de la Serpiente, desarrol
 
 ### Visión General del Juego
 
-
+[![Captura-de-pantalla-2024-09-03-194827.png](https://i.postimg.cc/y8kTMDGq/Captura-de-pantalla-2024-09-03-194827.png)](https://postimg.cc/TKvmm3GQ)
 
 El juego comienza con un menú principal donde los jugadores pueden elegir nivel de dificultad, ver puntuaciones altas o leer instrucciones. Una vez que comienza el juego, los jugadores controlan una serpiente que crece más larga a medida que come alimentos. El objetivo es comer la mayor cantidad de comida posible sin chocar con las paredes o el propio cuerpo de la serpiente.
 
@@ -24,7 +24,7 @@ El juego comienza con un menú principal donde los jugadores pueden elegir nivel
 
 El juego de la Serpiente es uno de los primeros juegos digitales, apareciendo por primera vez en la década de 1970. Ganó popularidad generalizada a finales de los años 90 cuando venía precargado en los teléfonos móviles Nokia. La simplicidad del juego y su naturaleza adictiva lo convirtieron en un fenómeno cultural.
 
-
+[![Juego-Clasico.png](https://i.postimg.cc/FRQgkDHm/Juego-Clasico.png)](https://postimg.cc/wt0sS5Nb)
 
 Nuestra versión rinde homenaje a este clásico mientras introduce elementos modernos para mejorar la experiencia de juego.
 
