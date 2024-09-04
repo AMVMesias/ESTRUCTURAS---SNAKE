@@ -55,6 +55,7 @@ El juego está estructurado en varios componentes clave:
 3. Evita chocar con las paredes y el propio cuerpo de la serpiente.
 4. Progresa a través de niveles cada vez más difíciles.
 5. ¡Intenta lograr la puntuación más alta posible!
+   [![howtoplay.jpg](https://i.postimg.cc/B6DbrXtN/howtoplay.jpg)](https://postimg.cc/tZq9PR3V)
 
 ### Compilación y Ejecución
 
@@ -90,7 +91,10 @@ SOFTWARE ADICIONAL:  SDL2 (Simple DirectMedia Layer), SDL2_image,  SDL2_ttf y SD
 
 ¡Disfruta jugando nuestra versión del clásico juego de la Serpiente!
 
-Creado por: Mesias Mariscal \\
+### SOPORTE: 
 Leonel Tipan \\ 
-Juan Quimbiulco \\ 
-Alison Miranda
+Mesias Mariscal \\
+Alison Miranda \\
+Juan Quimbiulco 
+
+[![desarrolladores.jpg](https://i.postimg.cc/QN1KPnTs/desarrolladores.jpg)](https://postimg.cc/RqC0Jddb)
