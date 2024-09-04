@@ -64,7 +64,9 @@ Para poder disfrutar de nuestro juego se recomienda tener instalado lo siguiente
 - CodeBlock
 - Librerías SLD2 (se encuentra en la carpeta lib de nuestro proyecto)
 
-Cada uno de los componentes a instalar se encuentran detallados paso a paso en el Manual Técnico 
+Cada uno de los componentes a instalar se encuentran detallados paso a paso en el Manual Técnico que se encuentra en en siguiente link:
+
+https://drive.google.com/drive/folders/1Iveq5gGFhKuhGy56O-DiOaxbX2eixyd3?usp=sharing
 
 Los requisitos minimos son los siguentes: 
 
