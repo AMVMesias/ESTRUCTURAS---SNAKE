@@ -6,12 +6,14 @@
 Menu::Menu(SDL_Renderer* renderer)
     : renderer(renderer), selectedOption(0), currentState(MenuState::MAIN), selectedDifficulty(0) {
     backgroundTexture = IMG_LoadTexture(renderer, "assets/images/imagen.png");
+    instructionsTexture = IMG_LoadTexture(renderer, "assets/images/instrucciones.png");
     font = TTF_OpenFont("assets/fonts/fuente.ttf", 30);
     menuMusic = Mix_LoadMUS("assets/music/musica.mp3");
 }
 
 Menu::~Menu() {
     SDL_DestroyTexture(backgroundTexture);
+    SDL_DestroyTexture(instructionsTexture);
     TTF_CloseFont(font);
     Mix_FreeMusic(menuMusic);
 }
@@ -106,33 +108,70 @@ void Menu::render() {
 
     SDL_Color green = {0, 255, 0, 255};
     SDL_Color white = {255, 255, 255, 255};
+    SDL_Color yellow = {255, 255, 0, 255};  // Changed to actual yellow
+    SDL_Color shadow = {0, 0, 0, 255};  // Black color for shadow
 
-    renderText("SNAKE GAME", SCREEN_WIDTH / 2, 100, green, true);
+    renderTextWithShadow("Snake Game", SCREEN_WIDTH / 2, 100, green, shadow, true);
 
     if (currentState == MenuState::MAIN) {
-        renderText("Iniciar Juego", SCREEN_WIDTH / 2, 250, selectedOption == 0 ? green : white, true);
-        renderText("Cómo Jugar", SCREEN_WIDTH / 2, 300, selectedOption == 1 ? green : white, true);
-        renderText("Score", SCREEN_WIDTH / 2, 350, selectedOption == 2 ? green : white, true);
-        renderText("Salir", SCREEN_WIDTH / 2, 400, selectedOption == 3 ? green : white, true);
+        SDL_Color shadowColor = {0, 0, 0, 255};  // Black shadow
+        renderTextWithShadow("Iniciar Juego", SCREEN_WIDTH / 2, 250, selectedOption == 0 ? green : white, shadowColor, true);
+        renderTextWithShadow("Cómo Jugar", SCREEN_WIDTH / 2, 300, selectedOption == 1 ? green : white, shadowColor, true);
+        renderTextWithShadow("Score", SCREEN_WIDTH / 2, 350, selectedOption == 2 ? green : white, shadowColor, true);
+        renderTextWithShadow("Salir", SCREEN_WIDTH / 2, 400, selectedOption == 3 ? green : white, shadowColor, true);
     } else if (currentState == MenuState::DIFFICULTY) {
-        renderText("Selecciona la dificultad:", SCREEN_WIDTH / 2, 200, white, true);
-        renderText("Fácil", SCREEN_WIDTH / 2, 300, selectedDifficulty == 0 ? green : white, true);
-        renderText("Medio", SCREEN_WIDTH / 2, 400, selectedDifficulty == 1 ? green : white, true);
-        renderText("Difícil", SCREEN_WIDTH / 2, 500, selectedDifficulty == 2 ? green : white, true);
+        SDL_Color shadowColor = {0, 0, 0, 255};  // Black shadow
+        renderTextWithShadow("Selecciona la dificultad:", SCREEN_WIDTH / 2, 200, white, shadowColor, true);
+        renderTextWithShadow("Fácil", SCREEN_WIDTH / 2, 300, selectedDifficulty == 0 ? green : white, shadowColor, true);
+        renderTextWithShadow("Medio", SCREEN_WIDTH / 2, 400, selectedDifficulty == 1 ? green : white, shadowColor, true);
+        renderTextWithShadow("Difícil", SCREEN_WIDTH / 2, 500, selectedDifficulty == 2 ? green : white, shadowColor, true);
     } else if (currentState == MenuState::INSTRUCTIONS) {
         TTF_CloseFont(font);
+        SDL_Rect destRect = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+        SDL_RenderCopy(renderer, instructionsTexture, NULL, &destRect);
         font = TTF_OpenFont("assets/fonts/fuente.ttf", 20);
-        renderText("Instrucciones:", SCREEN_WIDTH / 2, 150, white, true);
-        renderText("Flechas de dirección: Mover la serpiente", SCREEN_WIDTH / 2, 250, white, true);
-        renderText("WASD: Mover la serpiente", SCREEN_WIDTH / 2, 300, white, true);
-        renderText("Enter: Seleccionar opción", SCREEN_WIDTH / 2, 350, white, true);
-        renderText("Esc: Retroceder / Pausar", SCREEN_WIDTH / 2, 400, white, true);
-        renderText("Presiona Esc para volver al menú", SCREEN_WIDTH / 2, 500, white, true);
+
+        // Render text with shadow
+        renderTextWithShadow("Instrucciones:", SCREEN_WIDTH / 2, 150, yellow, shadow, true);
+        renderTextWithShadow("Flechas de dirección: Mover la serpiente", SCREEN_WIDTH / 2, 250, yellow, shadow, true);
+        renderTextWithShadow("WASD: Mover la serpiente", SCREEN_WIDTH / 2, 300, yellow, shadow, true);
+        renderTextWithShadow("Enter: Seleccionar opción", SCREEN_WIDTH / 2, 350, yellow, shadow, true);
+        renderTextWithShadow("Esc: Retroceder / Pausar", SCREEN_WIDTH / 2, 400, yellow, shadow, true);
+        renderTextWithShadow("Presiona Esc para volver al menú", SCREEN_WIDTH / 2, 500, yellow, shadow, true);
+
         TTF_CloseFont(font);
         font = TTF_OpenFont("assets/fonts/fuente.ttf", 30);
     }
 
     SDL_RenderPresent(renderer);
+}
+
+void Menu::renderTextWithShadow(const char* text, int x, int y, SDL_Color color, SDL_Color shadowColor, bool center) {
+    // Render shadow
+    SDL_Surface* shadowSurface = TTF_RenderText_Solid(font, text, shadowColor);
+    SDL_Texture* shadowTexture = SDL_CreateTextureFromSurface(renderer, shadowSurface);
+    SDL_Rect shadowRect;
+    if (center) {
+        shadowRect = { x - (shadowSurface->w / 2) + 2, y + 2, shadowSurface->w, shadowSurface->h };
+    } else {
+        shadowRect = { x + 2, y + 2, shadowSurface->w, shadowSurface->h };
+    }
+    SDL_RenderCopy(renderer, shadowTexture, NULL, &shadowRect);
+    SDL_FreeSurface(shadowSurface);
+    SDL_DestroyTexture(shadowTexture);
+
+    // Render main text
+    SDL_Surface* textSurface = TTF_RenderText_Solid(font, text, color);
+    SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+    SDL_Rect textRect;
+    if (center) {
+        textRect = { x - (textSurface->w / 2), y, textSurface->w, textSurface->h };
+    } else {
+        textRect = { x, y, textSurface->w, textSurface->h };
+    }
+    SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+    SDL_FreeSurface(textSurface);
+    SDL_DestroyTexture(textTexture);
 }
 
 void Menu::renderText(const char* text, int x, int y, SDL_Color color, bool center) {

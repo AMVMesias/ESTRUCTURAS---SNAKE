@@ -130,6 +130,7 @@ public:
     void limpiar() {
         Mix_FreeMusic(music);
         Mix_FreeChunk(eatSound);
+        Mix_FreeChunk(deathSound);
         Mix_CloseAudio();
         SDL_DestroyTexture(headTexture);
         SDL_DestroyTexture(bodyTexture);
@@ -164,6 +165,7 @@ private:
     int score;
     Mix_Music* music;
     Mix_Chunk* eatSound;
+    Mix_Chunk* deathSound;
     GameLevel currentLevel;
     Score scoreBoard;
     bool gameOver;
@@ -241,20 +243,7 @@ private:
         scoreBoard.renderText(timerText.c_str(), 9, 40, timerColor);
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-        void startCountdown() {
+    void startCountdown() {
         isCountingDown = true;
         countdownTime = 3000; // 3 segundos en milisegundos
         gameState = RUNNING; // Cambiamos el estado a RUNNING para que no se muestre el menú de pausa
@@ -279,68 +268,11 @@ private:
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     void renderCountdown() {
         SDL_Color white = {255, 255, 255, 255};
         std::string countdownText = "Reanudando en " + std::to_string((countdownTime / 1000) + 1);
         scoreBoard.renderText(countdownText.c_str(), SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2, white);
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     void actualizar(long long deltaTime) {
@@ -374,8 +306,6 @@ private:
             snake.pop_back();
         }
     }
-
-
 
 
     void handlePauseInput(const SDL_Event& event) {
@@ -438,16 +368,7 @@ private:
         }
     }
 
-
-
-
-
-
-
-
-
-
-        void handleGameOverInput(SDL_Keycode key) {
+    void handleGameOverInput(SDL_Keycode key) {
         if (key == SDLK_RETURN) {
             if (!playerName.empty()) {
                 saveScore();
@@ -631,6 +552,14 @@ private:
             return false;
         }
         Mix_VolumeChunk(eatSound, 128);
+
+        deathSound = Mix_LoadWAV("assets/music/muerte.wav");
+        if (!deathSound) {
+            std::cerr << "Error al cargar el sonido de muerte: " << Mix_GetError() << std::endl;
+            return false;
+        }
+        Mix_VolumeChunk(deathSound, 128);
+
         return true;
     }
 
@@ -749,6 +678,7 @@ void mostrarPantallaTransicion(const std::string& mensaje, const std::string& su
         gameOver = true;
         gameState = GAME_OVER;
         Mix_HaltMusic();
+        Mix_PlayChannel(-1, deathSound, 0);
         SDL_StartTextInput();
     }
 
@@ -757,16 +687,16 @@ void mostrarPantallaTransicion(const std::string& mensaje, const std::string& su
 
         scoreBoard.renderText("Game Over", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 - 100, color);
         scoreBoard.renderText(("Score: " + std::to_string(score)).c_str(), SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 - 50, color);
-        scoreBoard.renderText("Enter your name:", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2, color);
+        scoreBoard.renderText("Ingresa tu nombre:", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2, color);
 
         if (!playerName.empty()) {
             scoreBoard.renderText(playerName.c_str(), SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 + 50, color);
         } else {
-            scoreBoard.renderText("No name entered", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 + 50, color);
+            scoreBoard.renderText("Vacio", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 + 50, color);
         }
 
-        scoreBoard.renderText("Press Enter to Save", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 + 100, color);
-        scoreBoard.renderText("Press ESC to Restart", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 + 150, color);
+        scoreBoard.renderText("Presiona Enter para Guardar", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 + 100, color);
+        scoreBoard.renderText("Presiona ESC para salir", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 + 150, color);
     }
 
 
@@ -775,12 +705,6 @@ void mostrarPantallaTransicion(const std::string& mensaje, const std::string& su
         Mix_HaltMusic();
         Mix_PlayMusic(music, -1);
     }
-
-
-
-
-
-
 
     void resetGame() {
         levelTime = 90000;  // 90 segundos en milisegundos

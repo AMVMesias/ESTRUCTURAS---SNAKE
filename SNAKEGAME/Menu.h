@@ -27,6 +27,7 @@ public:
 private:
     SDL_Renderer* renderer;
     SDL_Texture* backgroundTexture;
+    SDL_Texture* instructionsTexture;
     TTF_Font* font;
     int selectedOption;
     MenuState currentState;
@@ -34,4 +35,5 @@ private:
     Mix_Music* menuMusic;
 
     void renderText(const char* text, int x, int y, SDL_Color color, bool center);
+    void renderTextWithShadow(const char* text, int x, int y, SDL_Color color, SDL_Color shadowColor, bool center);
 };
