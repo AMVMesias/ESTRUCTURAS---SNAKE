@@ -35,6 +35,24 @@
             "name": "Mesias",
             "score": 50,
             "time": 19
+        },
+        {
+            "difficulty": 1,
+            "name": "  ",
+            "score": 80,
+            "time": 15
+        },
+        {
+            "difficulty": 1,
+            "name": "Mesiiiii",
+            "score": 120,
+            "time": 33
+        },
+        {
+            "difficulty": 1,
+            "name": " Mr",
+            "score": 100,
+            "time": 25
         }
     ]
 }

@@ -15,10 +15,10 @@
 #include "Score.h"
 
 const int CELL_SIZE = 20;
+enum GameState { RUNNING, PAUSED, GAME_OVER, MENU, TRANSITION };
 
 enum Direction { UP, DOWN, LEFT, RIGHT };
 enum GameLevel { LEVEL_1, LEVEL_2, LEVEL_3 };
-enum GameState { RUNNING, PAUSED, GAME_OVER, MENU };
 
 struct Point {
     int x, y;
@@ -28,6 +28,8 @@ class Menu;  // Forward declaration
 
 class Game {
 public:
+    int levelTime;  // Tiempo restante del nivel en milisegundos
+
     Game(SDL_Renderer* renderer, Menu* menu)
         : renderer(renderer), menu(menu), direction(RIGHT), score(0), music(nullptr), eatSound(nullptr),
           currentLevel(LEVEL_1), scoreBoard(renderer), gameOver(false), gameState(RUNNING),
@@ -57,22 +59,29 @@ public:
             lastUpdateTime = currentTime;
 
             manejarEventos();
-            if (gameState == RUNNING && isGameStarted) {
+            if (isCountingDown) {
+                updateCountdown(deltaTime);
+            } else if (gameState == RUNNING && isGameStarted) {
                 actualizar(deltaTime);
+                if (gameState == RUNNING) {
+                    gameTime += deltaTime;
+                    levelTime -= deltaTime;
+                    if (levelTime <= 0) {
+                        if (currentLevel == LEVEL_1) {
+                            nivel2();
+                        } else if (currentLevel == LEVEL_2) {
+                            nivel3();
+                        } else {
+                            handleGameOver();
+                        }
+                    }
+                }
             }
             renderizar();
             SDL_Delay(1000 / (10 + difficulty * 5));
-
-            if (gameState == RUNNING) {
-                gameTime += deltaTime;
-                if (gameTime >= 4000 && currentLevel == LEVEL_1) {
-                    nivel2();
-                } else if (gameTime >= 15000 && currentLevel == LEVEL_2) {
-                    nivel3();
-                }
-            }
         }
     }
+
 
     void manejarEventos() {
         SDL_Event event;
@@ -117,66 +126,6 @@ public:
         }
     }
 
-    void actualizar(long long deltaTime) {
-        if (gameOver || gameState == PAUSED) return;
-
-        Point newHead = snake.front();
-        switch (direction) {
-            case UP:    newHead.y -= CELL_SIZE; break;
-            case DOWN:  newHead.y += CELL_SIZE; break;
-            case LEFT:  newHead.x -= CELL_SIZE; break;
-            case RIGHT: newHead.x += CELL_SIZE; break;
-        }
-
-        if (verificarColision(newHead)) {
-            handleGameOver();
-            return;
-        }
-
-        snake.insert(snake.begin(), newHead);
-
-        if (newHead.x == food.x && newHead.y == food.y) {
-            score += 10;
-            generarComida();
-            Mix_PlayChannel(-1, eatSound, 0);
-        } else {
-            snake.pop_back();
-        }
-    }
-
-    void renderizar() {
-        SDL_RenderClear(renderer);
-
-        SDL_Rect backgroundRect = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
-        SDL_RenderCopy(renderer, backgroundTexture, NULL, &backgroundRect);
-
-        if (gameOver) {
-            renderGameOver();
-        } else {
-            SDL_Rect foodRect = { food.x, food.y, CELL_SIZE, CELL_SIZE };
-            SDL_RenderCopy(renderer, appleTexture, NULL, &foodRect);
-
-            renderSnake();
-
-            SDL_SetRenderDrawColor(renderer, currentLevel == LEVEL_1 ? 128 : (currentLevel == LEVEL_2 ? 64 : 32), 128, 128, 255);
-            for (const auto& wall : walls) {
-                SDL_Rect wallRect = { wall.x, wall.y, CELL_SIZE, CELL_SIZE };
-                SDL_RenderFillRect(renderer, &wallRect);
-            }
-
-            SDL_Color white = {255, 255, 255, 255};
-            scoreBoard.renderText(("Score: " + std::to_string(score)).c_str(), 9, 9, white);
-
-            if (!isGameStarted) {
-                renderStartMessage();
-            }
-            if (gameState == PAUSED) {
-                renderPauseMenu();
-            }
-        }
-
-        SDL_RenderPresent(renderer);
-    }
 
     void limpiar() {
         Mix_FreeMusic(music);
@@ -193,11 +142,15 @@ public:
     void nivel2() {
         if (gameOver) return;
         mostrarPantallaTransicion("¡Superaste el primer nivel!", "¿Quieres continuar al Nivel 2?", LEVEL_2);
+         levelTime = 90000;  // Reiniciar el tiempo del nivel
+
     }
 
     void nivel3() {
         if (gameOver) return;
         mostrarPantallaTransicion("¡Superaste el Nivel 2!", "¿Quieres continuar al Nivel 3?", LEVEL_3);
+         levelTime = 90000;  // Reiniciar el tiempo del nivel
+
     }
 
 private:
@@ -226,6 +179,384 @@ private:
     SDL_Texture* backgroundTexture;
     long long gameTime;
     std::chrono::steady_clock::time_point lastUpdateTime;
+
+    bool isCountingDown;
+    int countdownTime;
+
+
+
+
+
+
+    void renderizar() {
+        SDL_RenderClear(renderer);
+
+        SDL_Rect backgroundRect = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+        SDL_RenderCopy(renderer, backgroundTexture, NULL, &backgroundRect);
+
+        if (gameOver) {
+            renderGameOver();
+        } else {
+            SDL_Rect foodRect = { food.x, food.y, CELL_SIZE, CELL_SIZE };
+            SDL_RenderCopy(renderer, appleTexture, NULL, &foodRect);
+
+            renderSnake();
+
+            SDL_SetRenderDrawColor(renderer, currentLevel == LEVEL_1 ? 128 : (currentLevel == LEVEL_2 ? 64 : 32), 128, 128, 255);
+            for (const auto& wall : walls) {
+                SDL_Rect wallRect = { wall.x, wall.y, CELL_SIZE, CELL_SIZE };
+                SDL_RenderFillRect(renderer, &wallRect);
+            }
+
+            renderLevelTimer();
+
+            SDL_Color white = {255, 255, 255, 255};
+            scoreBoard.renderText(("Score: " + std::to_string(score)).c_str(), 9, 9, white);
+
+            if (!isGameStarted) {
+                renderStartMessage();
+            }
+            if (gameState == PAUSED && !isCountingDown) {
+                renderPauseMenu();
+            }
+            if (isCountingDown) {
+                renderCountdown();
+            }
+        }
+
+        SDL_RenderPresent(renderer);
+    }
+
+    void renderLevelTimer() {
+        int secondsLeft = levelTime / 1000;
+        SDL_Color timerColor;
+        if (secondsLeft > 60) {
+            timerColor = {0, 255, 0, 255};  // Verde
+        } else if (secondsLeft > 30) {
+            timerColor = {255, 255, 0, 255};  // Amarillo
+        } else {
+            timerColor = {255, 0, 0, 255};  // Rojo
+        }
+        std::string timerText = "Time: " + std::to_string(secondsLeft);
+        scoreBoard.renderText(timerText.c_str(), 9, 40, timerColor);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        void startCountdown() {
+        isCountingDown = true;
+        countdownTime = 3000; // 3 segundos en milisegundos
+        gameState = RUNNING; // Cambiamos el estado a RUNNING para que no se muestre el menú de pausa
+    }
+
+
+    void togglePause() {
+        if (gameState == RUNNING) {
+            gameState = PAUSED;
+            Mix_PauseMusic();
+        } else if (gameState == PAUSED) {
+            startCountdown();
+        }
+    }
+
+    void updateCountdown(long long deltaTime) {
+        countdownTime -= deltaTime;
+        if (countdownTime <= 0) {
+            isCountingDown = false;
+            gameState = RUNNING;
+            Mix_ResumeMusic();
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    void renderCountdown() {
+        SDL_Color white = {255, 255, 255, 255};
+        std::string countdownText = "Reanudando en " + std::to_string((countdownTime / 1000) + 1);
+        scoreBoard.renderText(countdownText.c_str(), SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2, white);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    void actualizar(long long deltaTime) {
+        if (gameOver || gameState == PAUSED) return;
+
+        if (isCountingDown) {
+            updateCountdown();
+            return;
+        }
+
+        Point newHead = snake.front();
+        switch (direction) {
+            case UP:    newHead.y -= CELL_SIZE; break;
+            case DOWN:  newHead.y += CELL_SIZE; break;
+            case LEFT:  newHead.x -= CELL_SIZE; break;
+            case RIGHT: newHead.x += CELL_SIZE; break;
+        }
+
+        if (verificarColision(newHead)) {
+            handleGameOver();
+            return;
+        }
+
+        snake.insert(snake.begin(), newHead);
+
+        if (newHead.x == food.x && newHead.y == food.y) {
+            score += 10;
+            generarComida();
+            Mix_PlayChannel(-1, eatSound, 0);
+        } else {
+            snake.pop_back();
+        }
+    }
+
+
+
+
+    void handlePauseInput(const SDL_Event& event) {
+        if (event.type == SDL_KEYDOWN) {
+            if (event.key.keysym.sym == SDLK_UP) {
+                selectedOption = (selectedOption - 1 + 4) % 4;  // Ahora son 4 opciones
+            } else if (event.key.keysym.sym == SDLK_DOWN) {
+                selectedOption = (selectedOption + 1) % 4;  // Ahora son 4 opciones
+            } else if (event.key.keysym.sym == SDLK_RETURN) {
+                executePauseOption();
+            }
+        }
+    }
+
+    void renderPauseMenu() {
+        SDL_Color white = {255, 255, 255, 255};
+        SDL_Color selectedColor = {0, 255, 0, 255};
+
+        scoreBoard.renderText("PAUSED", SCREEN_WIDTH / 2 - 50, SCREEN_HEIGHT / 2 - 150, white);
+        scoreBoard.renderText("Reanudar", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 - 75, selectedOption == 0 ? selectedColor : white);
+        scoreBoard.renderText("Reiniciar Juego", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 - 25, selectedOption == 1 ? selectedColor : white);
+        scoreBoard.renderText("Menu Principal", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 + 25, selectedOption == 2 ? selectedColor : white);
+        scoreBoard.renderText("Salir del Juego", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 + 75, selectedOption == 3 ? selectedColor : white);
+    }
+
+    void executePauseOption() {
+        switch (selectedOption) {
+            case 0: // Reanudar
+                startCountdown();
+                break;
+            case 1: // Reiniciar Juego
+                gameState = RUNNING;
+                reiniciarMusica();
+                resetGame();
+                break;
+            case 2: // Menu Principal
+                returnToMainMenu();
+                break;
+            case 3: // Salir del Juego
+                exit(0);
+                break;
+        }
+    }
+
+
+    void updateCountdown() {
+        static Uint32 lastCountdownUpdate = SDL_GetTicks();
+        Uint32 currentTime = SDL_GetTicks();
+
+        if (currentTime - lastCountdownUpdate >= 1000) {
+            countdownTime--;
+            lastCountdownUpdate = currentTime;
+
+            if (countdownTime <= 0) {
+                isCountingDown = false;
+                gameState = RUNNING;
+                Mix_ResumeMusic();
+                lastUpdateTime = std::chrono::steady_clock::now();
+            }
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+        void handleGameOverInput(SDL_Keycode key) {
+        if (key == SDLK_RETURN) {
+            if (!playerName.empty()) {
+                saveScore();
+                returnToMainMenu();  // Llamamos a returnToMainMenu en lugar de resetGame
+            }
+        } else if (key == SDLK_ESCAPE) {
+            returnToMainMenu();  // También volvemos al menú principal si se presiona ESC
+        } else if (key == SDLK_BACKSPACE && !playerName.empty()) {
+            playerName.pop_back();
+        }
+    }
+
+    void saveScore() {
+        if (playerName.empty()) {
+            return;
+        }
+
+        nlohmann::json j;
+        std::ifstream ifs("scores.json");
+
+        if (ifs.good()) {
+            ifs >> j;
+        }
+        ifs.close();
+
+        bool playerExists = false;
+        for (auto& entry : j["scores"]) {
+            if (entry["name"] == playerName) {
+                playerExists = true;
+                if (score > entry["score"]) {
+                    entry["score"] = score;
+                    entry["difficulty"] = difficulty;
+                    entry["time"] = gameTime / 1000; // Convertir a segundos
+                }
+                break;
+            }
+        }
+
+        if (!playerExists) {
+            nlohmann::json newScore;
+            newScore["name"] = playerName;
+            newScore["score"] = score;
+            newScore["difficulty"] = difficulty;
+            newScore["time"] = gameTime / 1000; // Convertir a segundos
+            j["scores"].push_back(newScore);
+        }
+
+        std::ofstream ofs("scores.json");
+        ofs << j.dump(4);
+        ofs.close();
+
+        SDL_StopTextInput();
+    }
+
+    void returnToMainMenu() {
+        isRunning = false;
+        Mix_HaltMusic();
+        menu->show();
+    }
+
+
+    void generarParedesNivel3() {
+        generarParedes();  // Generar las paredes exteriores
+
+        // Definir el tamaño de los obstáculos
+        int obstaculoSize = 3;
+
+        // Crear obstáculos en las esquinas
+        for (int i = 0; i < obstaculoSize; i++) {
+            for (int j = 0; j < obstaculoSize; j++) {
+                // Esquina superior izquierda
+                walls.push_back({CELL_SIZE * (2 + i), CELL_SIZE * (2 + j)});
+                // Esquina superior derecha
+                walls.push_back({SCREEN_WIDTH - CELL_SIZE * (3 + i), CELL_SIZE * (2 + j)});
+                // Esquina inferior izquierda
+                walls.push_back({CELL_SIZE * (2 + i), SCREEN_HEIGHT - CELL_SIZE * (3 + j)});
+                // Esquina inferior derecha
+                walls.push_back({SCREEN_WIDTH - CELL_SIZE * (3 + i), SCREEN_HEIGHT - CELL_SIZE * (3 + j)});
+            }
+        }
+
+        // Crear obstáculos en forma de "L" en el centro
+        int centerX = SCREEN_WIDTH / 2;
+        int centerY = SCREEN_HEIGHT / 2;
+        for (int i = -2; i <= 2; i++) {
+            walls.push_back({centerX + i * CELL_SIZE, centerY});
+            walls.push_back({centerX, centerY + i * CELL_SIZE});
+        }
+
+        // Añadir obstáculos adicionales
+        walls.push_back({centerX - 5 * CELL_SIZE, centerY});
+        walls.push_back({centerX + 5 * CELL_SIZE, centerY});
+        walls.push_back({centerX, centerY - 5 * CELL_SIZE});
+        walls.push_back({centerX, centerY + 5 * CELL_SIZE});
+
+        // Crear pequeños obstáculos aleatorios
+        int numRandomObstacles = 5;
+        for (int i = 0; i < numRandomObstacles; i++) {
+            int x, y;
+            do {
+                x = (rand() % (SCREEN_WIDTH / CELL_SIZE - 4) + 2) * CELL_SIZE;
+                y = (rand() % (SCREEN_HEIGHT / CELL_SIZE - 4) + 2) * CELL_SIZE;
+            } while (verificarColision({x, y}));
+
+            walls.push_back({x, y});
+            walls.push_back({x + CELL_SIZE, y});
+            walls.push_back({x, y + CELL_SIZE});
+        }
+    }
 
     bool cargarTexturas() {
         headTexture = loadTexture("assets/images/snake_head.png");
@@ -324,15 +655,6 @@ private:
         }
     }
 
-    void generarParedesNivel3() {
-        generarParedes();
-        int centerX = SCREEN_WIDTH / 2;
-        int centerY = SCREEN_HEIGHT / 2;
-        for (int i = -7; i <= 7; i++) {
-            walls.push_back({centerX + i * CELL_SIZE, centerY});
-            walls.push_back({centerX, centerY + i * CELL_SIZE});
-        }
-    }
 
     void generarComida() {
         do {
@@ -371,6 +693,7 @@ private:
     }
 
 void mostrarPantallaTransicion(const std::string& mensaje, const std::string& subMensaje, GameLevel nextLevel) {
+        gameState = TRANSITION;
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
@@ -398,6 +721,7 @@ void mostrarPantallaTransicion(const std::string& mensaje, const std::string& su
         generarComida();
         isGameStarted = false;
         lastUpdateTime = std::chrono::steady_clock::now();
+        gameState = RUNNING;
     }
 
     bool esperarDecisionJugador() {
@@ -415,8 +739,11 @@ void mostrarPantallaTransicion(const std::string& mensaje, const std::string& su
                     }
                 }
             }
+            SDL_Delay(10);  // Pequeña pausa para no saturar la CPU
         }
     }
+
+
 
     void handleGameOver() {
         gameOver = true;
@@ -442,125 +769,22 @@ void mostrarPantallaTransicion(const std::string& mensaje, const std::string& su
         scoreBoard.renderText("Press ESC to Restart", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 + 150, color);
     }
 
-    void saveScore() {
-        if (playerName.empty()) {
-            return;
-        }
 
-        nlohmann::json j;
-        std::ifstream ifs("scores.json");
-
-        if (ifs.good()) {
-            ifs >> j;
-        }
-        ifs.close();
-
-        bool playerExists = false;
-        for (auto& entry : j["scores"]) {
-            if (entry["name"] == playerName) {
-                playerExists = true;
-                if (score > entry["score"]) {
-                    entry["score"] = score;
-                    entry["difficulty"] = difficulty;
-                    entry["time"] = gameTime / 1000; // Convertir a segundos
-                }
-                break;
-            }
-        }
-
-        if (!playerExists) {
-            nlohmann::json newScore;
-            newScore["name"] = playerName;
-            newScore["score"] = score;
-            newScore["difficulty"] = difficulty;
-            newScore["time"] = gameTime / 1000; // Convertir a segundos
-            j["scores"].push_back(newScore);
-        }
-
-        std::ofstream ofs("scores.json");
-        ofs << j.dump(4);
-        ofs.close();
-
-        SDL_StopTextInput();
-    }
-
-    void handleGameOverInput(SDL_Keycode key) {
-        if (key == SDLK_RETURN) {
-            if (!playerName.empty()) {
-                saveScore();
-                resetGame();
-                gameState = RUNNING;
-                reiniciarMusica();
-            }
-        } else if (key == SDLK_ESCAPE) {
-            resetGame();
-            gameState = RUNNING;
-            reiniciarMusica();
-        } else if (key == SDLK_BACKSPACE && !playerName.empty()) {
-            playerName.pop_back();
-        }
-    }
 
     void reiniciarMusica() {
         Mix_HaltMusic();
         Mix_PlayMusic(music, -1);
     }
 
-    void togglePause() {
-        if (gameState == RUNNING) {
-            gameState = PAUSED;
-            Mix_PauseMusic();
-        } else if (gameState == PAUSED) {
-            gameState = RUNNING;
-            Mix_ResumeMusic();
-            lastUpdateTime = std::chrono::steady_clock::now();
-        }
-    }
 
-    void handlePauseInput(const SDL_Event& event) {
-        if (event.type == SDL_KEYDOWN) {
-            if (event.key.keysym.sym == SDLK_UP) {
-                selectedOption = (selectedOption - 1 + 3) % 3;
-            } else if (event.key.keysym.sym == SDLK_DOWN) {
-                selectedOption = (selectedOption + 1) % 3;
-            } else if (event.key.keysym.sym == SDLK_RETURN) {
-                executePauseOption();
-            }
-        }
-    }
 
-    void renderPauseMenu() {
-        SDL_Color white = {255, 255, 255, 255};
-        SDL_Color selectedColor = {0, 255, 0, 255};
 
-        scoreBoard.renderText("PAUSED", SCREEN_WIDTH / 2 - 50, SCREEN_HEIGHT / 2 - 100, white);
-        scoreBoard.renderText("Reiniciar Juego", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 - 50, selectedOption == 0 ? selectedColor : white);
-        scoreBoard.renderText("Menu Principal", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2, selectedOption == 1 ? selectedColor : white);
-        scoreBoard.renderText("Salir del Juego", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 + 50, selectedOption == 2 ? selectedColor : white);
-    }
 
-    void executePauseOption() {
-        switch (selectedOption) {
-            case 0: // Reiniciar Juego
-                gameState = RUNNING;
-                reiniciarMusica();
-                resetGame();
-                break;
-            case 1: // Menu Principal
-                returnToMainMenu();
-                break;
-            case 2: // Salir del Juego
-                exit(0);
-                break;
-        }
-    }
 
-    void returnToMainMenu() {
-        isRunning = false;
-        menu->show();
-    }
 
     void resetGame() {
+        levelTime = 90000;  // 90 segundos en milisegundos
+        currentLevel = LEVEL_1;
         snake.clear();
         snake.push_back({SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2});
         direction = RIGHT;

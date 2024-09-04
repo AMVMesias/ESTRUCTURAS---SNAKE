@@ -7,7 +7,7 @@ Menu::Menu(SDL_Renderer* renderer)
     : renderer(renderer), selectedOption(0), currentState(MenuState::MAIN), selectedDifficulty(0) {
     backgroundTexture = IMG_LoadTexture(renderer, "assets/images/imagen.png");
     font = TTF_OpenFont("assets/fonts/fuente.ttf", 30);
-    menuMusic = Mix_LoadMUS("assets/music/musica.mp3");  // Asegúrate de tener esta música
+    menuMusic = Mix_LoadMUS("assets/music/musica.mp3");
 }
 
 Menu::~Menu() {
@@ -18,7 +18,7 @@ Menu::~Menu() {
 
 void Menu::playMusic() {
     if (Mix_PlayingMusic() == 0) {
-        Mix_PlayMusic(menuMusic, -1);  // -1 para reproducir en loop
+        Mix_PlayMusic(menuMusic, -1);
     } else if (Mix_PausedMusic() == 1) {
         Mix_ResumeMusic();
     }
@@ -30,7 +30,7 @@ void Menu::stopMusic() {
 
 void Menu::show() {
     currentState = MenuState::MAIN;
-    playMusic();  // Reproducir música del menú
+    playMusic();
     bool menuRunning = true;
     while (menuRunning) {
         handleEvents(menuRunning);
@@ -79,11 +79,10 @@ void Menu::handleEvents(bool &isRunning) {
                             break;
                         case SDLK_RETURN:
                             {
-                                stopMusic();  // Detener la música del menú
-                                Game* game = new Game(renderer, this);
-                                game->iniciar(selectedDifficulty + 1);
-                                delete game;
-                                playMusic();  // Reiniciar la música del menú
+                                stopMusic();
+                                Game game(renderer, this);
+                                game.iniciar(selectedDifficulty + 1);
+                                playMusic();
                             }
                             break;
                         case SDLK_ESCAPE:
