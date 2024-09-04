@@ -58,7 +58,27 @@ El juego está estructurado en varios componentes clave:
 
 ### Compilación y Ejecución
 
-(Descrito en los archivos PDF incluidos)
+Para poder disfrutar de nuestro juego se recomienda tener instalado lo siguiente:
+- Compilador MSYS2
+- CodeBlock
+- Librerías SLD2 (se encuentra en la carpeta lib de nuestro proyecto)
+
+Cada uno de los componentes a instalar se encuentran detallados paso a paso en el Manual Técnico 
+
+Los requisitos minimos son los siguentes: 
+
+SISTEMA OPERATIVO:  Windows 10 en adelante. 
+
+PROCESADOR: 
+
+Requisitos minimos: Intel Celer 
+Requisitos recomenados: Intel Core i3-7100 
+
+MEMORIA RAM: 4 GB o más. 
+
+ESPACIO EN DISCO: 500 MB de espacio libre. 
+
+SOFTWARE ADICIONAL:  SDL2 (Simple DirectMedia Layer), SDL2_image,  SDL2_ttf y SDL2_mixer
 
 ### Mejoras Futuras
 
