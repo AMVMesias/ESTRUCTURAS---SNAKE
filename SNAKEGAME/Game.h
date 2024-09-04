@@ -255,13 +255,35 @@ private:
     }
 
 
-    // Nueva función para renderizar la serpiente
+   double calculateHeadRotation() {
+        if (snake.size() < 2) {
+            switch (direction) {
+                case RIGHT: return 180.0;
+                case LEFT:  return 0.0;
+                case DOWN:  return 270.0;
+                case UP:    return 90.0;
+                default:    return 180.0;
+            }
+        }
+
+        Point head = snake[0];
+        Point neck = snake[1];
+
+        if (head.x > neck.x) return 180.0;    // Derecha
+        if (head.x < neck.x) return 0.0;      // Izquierda
+        if (head.y > neck.y) return 270.0;    // Abajo
+        if (head.y < neck.y) return 90.0;     // Arriba
+
+        return 180.0;
+    }
+
     void renderSnake() {
         for (size_t i = 0; i < snake.size(); ++i) {
             SDL_Rect destRect = { snake[i].x, snake[i].y, CELL_SIZE, CELL_SIZE };
             if (i == 0) {
-                // Renderizar la cabeza
-                SDL_RenderCopy(renderer, headTexture, NULL, &destRect);
+                // Renderizar la cabeza con rotación
+                double angle = calculateHeadRotation();
+                SDL_RenderCopyEx(renderer, headTexture, NULL, &destRect, angle, NULL, SDL_FLIP_NONE);
             } else {
                 // Renderizar el cuerpo
                 SDL_RenderCopy(renderer, bodyTexture, NULL, &destRect);
