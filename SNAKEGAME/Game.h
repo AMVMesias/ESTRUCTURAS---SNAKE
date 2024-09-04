@@ -16,7 +16,6 @@
 
 const int CELL_SIZE = 20;
 
-
 enum Direction { UP, DOWN, LEFT, RIGHT };
 enum GameLevel { LEVEL_1, LEVEL_2, LEVEL_3 };
 enum GameState { RUNNING, PAUSED, GAME_OVER, MENU };
@@ -33,7 +32,8 @@ public:
         : renderer(renderer), menu(menu), direction(RIGHT), score(0), music(nullptr), eatSound(nullptr),
           currentLevel(LEVEL_1), scoreBoard(renderer), gameOver(false), gameState(RUNNING),
           selectedOption(0), gameOverOption(0), isGameStarted(false), difficulty(1),
-          headTexture(nullptr), bodyTexture(nullptr), isRunning(true) {
+          headTexture(nullptr), bodyTexture(nullptr), isRunning(true),
+          gameTime(0), lastUpdateTime(std::chrono::steady_clock::now()) {
         snake.push_back({SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2});
         generarParedes();
         generarComida();
@@ -41,7 +41,6 @@ public:
         if (!inicializarMusica() || !inicializarSonido() || !cargarTexturas()) {
             isRunning = false;
         }
-        startTime = std::chrono::steady_clock::now();
     }
 
     ~Game() {
@@ -53,19 +52,24 @@ public:
         isGameStarted = false;
         resetGame();
         while (isRunning) {
+            auto currentTime = std::chrono::steady_clock::now();
+            auto deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastUpdateTime).count();
+            lastUpdateTime = currentTime;
+
             manejarEventos();
             if (gameState == RUNNING && isGameStarted) {
-                actualizar();
+                actualizar(deltaTime);
             }
             renderizar();
             SDL_Delay(1000 / (10 + difficulty * 5));
 
-            auto currentTime = std::chrono::steady_clock::now();
-            auto elapsedTime = std::chrono::duration_cast<std::chrono::seconds>(currentTime - startTime).count();
-            if (elapsedTime >= 4 && currentLevel == LEVEL_1) {
-                nivel2();
-            } else if (elapsedTime >= 15 && currentLevel == LEVEL_2) {
-                nivel3();
+            if (gameState == RUNNING) {
+                gameTime += deltaTime;
+                if (gameTime >= 4000 && currentLevel == LEVEL_1) {
+                    nivel2();
+                } else if (gameTime >= 15000 && currentLevel == LEVEL_2) {
+                    nivel3();
+                }
             }
         }
     }
@@ -113,11 +117,8 @@ public:
         }
     }
 
-    void actualizar() {
-        if (gameOver) return;
-        if (gameState == PAUSED) {
-            return; // No actualizar si el juego está pausado
-        }
+    void actualizar(long long deltaTime) {
+        if (gameOver || gameState == PAUSED) return;
 
         Point newHead = snake.front();
         switch (direction) {
@@ -146,21 +147,17 @@ public:
     void renderizar() {
         SDL_RenderClear(renderer);
 
-        // Renderizar la textura del fondo
-        SDL_Rect backgroundRect = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};  // Asume que el fondo cubre toda la pantalla
+        SDL_Rect backgroundRect = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
         SDL_RenderCopy(renderer, backgroundTexture, NULL, &backgroundRect);
 
         if (gameOver) {
             renderGameOver();
         } else {
-            // Renderizar la comida como una manzana
             SDL_Rect foodRect = { food.x, food.y, CELL_SIZE, CELL_SIZE };
             SDL_RenderCopy(renderer, appleTexture, NULL, &foodRect);
 
-            // Renderizar la serpiente con imágenes
             renderSnake();
 
-            // Resto del código de renderizado para paredes y otros elementos
             SDL_SetRenderDrawColor(renderer, currentLevel == LEVEL_1 ? 128 : (currentLevel == LEVEL_2 ? 64 : 32), 128, 128, 255);
             for (const auto& wall : walls) {
                 SDL_Rect wallRect = { wall.x, wall.y, CELL_SIZE, CELL_SIZE };
@@ -188,23 +185,21 @@ public:
         SDL_DestroyTexture(headTexture);
         SDL_DestroyTexture(bodyTexture);
         SDL_DestroyTexture(appleTexture);
-        SDL_DestroyTexture(backgroundTexture);  // Liberar la textura del fondo
+        SDL_DestroyTexture(backgroundTexture);
         SDL_DestroyRenderer(renderer);
         SDL_Quit();
     }
 
-
     void nivel2() {
-        if (gameOver) return;  // No mostrar el mensaje si el juego ha terminado
+        if (gameOver) return;
         mostrarPantallaTransicion("¡Superaste el primer nivel!", "¿Quieres continuar al Nivel 2?", LEVEL_2);
     }
 
     void nivel3() {
-        if (gameOver) return;  // No mostrar el mensaje si el juego ha terminado
+        if (gameOver) return;
         mostrarPantallaTransicion("¡Superaste el Nivel 2!", "¿Quieres continuar al Nivel 3?", LEVEL_3);
     }
 
-private:
 private:
     SDL_Renderer* renderer;
     Menu* menu;
@@ -218,7 +213,6 @@ private:
     Mix_Chunk* eatSound;
     GameLevel currentLevel;
     Score scoreBoard;
-    std::chrono::steady_clock::time_point startTime;
     bool gameOver;
     GameState gameState;
     int selectedOption;
@@ -230,8 +224,8 @@ private:
     SDL_Texture* bodyTexture;
     SDL_Texture* appleTexture;
     SDL_Texture* backgroundTexture;
-
-
+    long long gameTime;
+    std::chrono::steady_clock::time_point lastUpdateTime;
 
     bool cargarTexturas() {
         headTexture = loadTexture("assets/images/snake_head.png");
@@ -241,8 +235,6 @@ private:
         return (headTexture != nullptr && bodyTexture != nullptr && appleTexture != nullptr && backgroundTexture != nullptr);
     }
 
-
-    // Función auxiliar para cargar texturas
     SDL_Texture* loadTexture(const char* path) {
         SDL_Surface* surface = IMG_Load(path);
         if (!surface) {
@@ -254,8 +246,7 @@ private:
         return texture;
     }
 
-
-   double calculateHeadRotation() {
+    double calculateHeadRotation() {
         if (snake.size() < 2) {
             switch (direction) {
                 case RIGHT: return 180.0;
@@ -269,10 +260,10 @@ private:
         Point head = snake[0];
         Point neck = snake[1];
 
-        if (head.x > neck.x) return 180.0;    // Derecha
-        if (head.x < neck.x) return 0.0;      // Izquierda
-        if (head.y > neck.y) return 270.0;    // Abajo
-        if (head.y < neck.y) return 90.0;     // Arriba
+        if (head.x > neck.x) return 180.0;
+        if (head.x < neck.x) return 0.0;
+        if (head.y > neck.y) return 270.0;
+        if (head.y < neck.y) return 90.0;
 
         return 180.0;
     }
@@ -281,16 +272,13 @@ private:
         for (size_t i = 0; i < snake.size(); ++i) {
             SDL_Rect destRect = { snake[i].x, snake[i].y, CELL_SIZE, CELL_SIZE };
             if (i == 0) {
-                // Renderizar la cabeza con rotación
                 double angle = calculateHeadRotation();
                 SDL_RenderCopyEx(renderer, headTexture, NULL, &destRect, angle, NULL, SDL_FLIP_NONE);
             } else {
-                // Renderizar el cuerpo
                 SDL_RenderCopy(renderer, bodyTexture, NULL, &destRect);
             }
         }
     }
-
 
     bool inicializarMusica() {
         if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
@@ -382,7 +370,7 @@ private:
         direction = RIGHT;
     }
 
-    void mostrarPantallaTransicion(const std::string& mensaje, const std::string& subMensaje, GameLevel nextLevel) {
+void mostrarPantallaTransicion(const std::string& mensaje, const std::string& subMensaje, GameLevel nextLevel) {
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
@@ -408,7 +396,8 @@ private:
         }
         posicionarSerpienteEnLugarSeguro();
         generarComida();
-        isGameStarted = false; // Reiniciar estado del juego al cambiar de nivel
+        isGameStarted = false;
+        lastUpdateTime = std::chrono::steady_clock::now();
     }
 
     bool esperarDecisionJugador() {
@@ -429,85 +418,69 @@ private:
         }
     }
 
-
     void handleGameOver() {
         gameOver = true;
         gameState = GAME_OVER;
         Mix_HaltMusic();
-        SDL_StartTextInput(); // Iniciar la entrada de texto cuando el juego termina
+        SDL_StartTextInput();
     }
 
     void renderGameOver() {
-        SDL_Color color = {255, 255, 255, 255};  // Blanco
+        SDL_Color color = {255, 255, 255, 255};
 
-        // Mensaje de Game Over
         scoreBoard.renderText("Game Over", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 - 100, color);
-
-        // Puntuación
         scoreBoard.renderText(("Score: " + std::to_string(score)).c_str(), SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 - 50, color);
-
-        // Mensaje para ingresar el nombre
         scoreBoard.renderText("Enter your name:", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2, color);
 
-        // Nombre del jugador
         if (!playerName.empty()) {
             scoreBoard.renderText(playerName.c_str(), SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 + 50, color);
         } else {
             scoreBoard.renderText("No name entered", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 + 50, color);
         }
 
-        // Mensaje para guardar
         scoreBoard.renderText("Press Enter to Save", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 + 100, color);
-
-        // Mensaje para reiniciar
         scoreBoard.renderText("Press ESC to Restart", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 + 150, color);
     }
 
     void saveScore() {
         if (playerName.empty()) {
-            return;  // No guardar si no se ingresó un nombre
+            return;
         }
 
         nlohmann::json j;
         std::ifstream ifs("scores.json");
 
-        // Cargar el archivo JSON si existe
         if (ifs.good()) {
             ifs >> j;
         }
         ifs.close();
 
-        // Verificar si ya existe un registro para este jugador
         bool playerExists = false;
         for (auto& entry : j["scores"]) {
             if (entry["name"] == playerName) {
                 playerExists = true;
-                // Si el puntaje actual es mayor, actualiza el registro
                 if (score > entry["score"]) {
                     entry["score"] = score;
                     entry["difficulty"] = difficulty;
-                    entry["time"] = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - startTime).count();
+                    entry["time"] = gameTime / 1000; // Convertir a segundos
                 }
                 break;
             }
         }
 
-        // Si el jugador no existe, crear un nuevo registro
         if (!playerExists) {
             nlohmann::json newScore;
-            newScore["name"] = playerName;  // Guardar el nombre del jugador
+            newScore["name"] = playerName;
             newScore["score"] = score;
             newScore["difficulty"] = difficulty;
-            newScore["time"] = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - startTime).count();
+            newScore["time"] = gameTime / 1000; // Convertir a segundos
             j["scores"].push_back(newScore);
         }
 
-        // Guardar el archivo JSON
         std::ofstream ofs("scores.json");
-        ofs << j.dump(4);  // Guardar con indentación de 4 espacios para legibilidad
+        ofs << j.dump(4);
         ofs.close();
 
-        // Detener la entrada de texto después de guardar
         SDL_StopTextInput();
     }
 
@@ -515,7 +488,7 @@ private:
         if (key == SDLK_RETURN) {
             if (!playerName.empty()) {
                 saveScore();
-                resetGame();  // Reiniciar el juego después de guardar
+                resetGame();
                 gameState = RUNNING;
                 reiniciarMusica();
             }
@@ -530,7 +503,7 @@ private:
 
     void reiniciarMusica() {
         Mix_HaltMusic();
-        Mix_PlayMusic(music, -1);  // Reproducir la música en bucle
+        Mix_PlayMusic(music, -1);
     }
 
     void togglePause() {
@@ -540,6 +513,7 @@ private:
         } else if (gameState == PAUSED) {
             gameState = RUNNING;
             Mix_ResumeMusic();
+            lastUpdateTime = std::chrono::steady_clock::now();
         }
     }
 
@@ -557,7 +531,7 @@ private:
 
     void renderPauseMenu() {
         SDL_Color white = {255, 255, 255, 255};
-        SDL_Color selectedColor = {0, 255, 0, 255}; // Color para la opción seleccionada
+        SDL_Color selectedColor = {0, 255, 0, 255};
 
         scoreBoard.renderText("PAUSED", SCREEN_WIDTH / 2 - 50, SCREEN_HEIGHT / 2 - 100, white);
         scoreBoard.renderText("Reiniciar Juego", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 - 50, selectedOption == 0 ? selectedColor : white);
@@ -570,6 +544,7 @@ private:
             case 0: // Reiniciar Juego
                 gameState = RUNNING;
                 reiniciarMusica();
+                resetGame();
                 break;
             case 1: // Menu Principal
                 returnToMainMenu();
@@ -584,6 +559,7 @@ private:
         isRunning = false;
         menu->show();
     }
+
     void resetGame() {
         snake.clear();
         snake.push_back({SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2});
@@ -593,13 +569,14 @@ private:
         walls.clear();
         generarParedes();
         generarComida();
-        startTime = std::chrono::steady_clock::now();
+        gameTime = 0;
+        lastUpdateTime = std::chrono::steady_clock::now();
         gameOver = false;
         gameState = RUNNING;
-        selectedOption = 0; // Resetear opción seleccionada
-        gameOverOption = 0; // Resetear opción de Game Over
-        isGameStarted = false; // Reiniciar estado del juego
-        playerName.clear(); // Limpiar el nombre del jugador
+        selectedOption = 0;
+        gameOverOption = 0;
+        isGameStarted = false;
+        playerName.clear();
     }
 
     void renderStartMessage() {

@@ -29,6 +29,12 @@
             "name": "A",
             "score": 130,
             "time": 64
+        },
+        {
+            "difficulty": 1,
+            "name": "Mesias",
+            "score": 50,
+            "time": 19
         }
     ]
 }
